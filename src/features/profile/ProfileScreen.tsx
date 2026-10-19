@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, Button, Card, ConfirmButton, ErrorBox, Field, SectionTitle, useToast } from "../../components/ui.tsx";
 import { isStandalone, needsIOSInstall } from "../../lib/pwa.ts";
@@ -74,6 +75,24 @@ export function ProfileScreen({ profile, community, myRole }: { profile: Profile
             ? "En Safari tocá Compartir y después “Agregar a inicio”. En iPhone es la única forma de recibir notificaciones."
             : "Abrí el menú del navegador (⋮) y elegí “Instalar app”."}
         </Card>
+      ) : null}
+
+      {myRole !== "educador" || profile.is_superadmin ? (
+        <>
+          <SectionTitle>Más</SectionTitle>
+          <Card className="flex flex-col p-1">
+            {myRole !== "educador" ? (
+              <Link to="/papelera" className="flex items-center justify-between rounded-xl px-3 py-3 font-bold">
+                Papelera <span className="text-muted">›</span>
+              </Link>
+            ) : null}
+            {profile.is_superadmin ? (
+              <Link to="/admin" className="flex items-center justify-between rounded-xl border-t border-line px-3 py-3 font-bold">
+                Administración de la plataforma <span className="text-muted">›</span>
+              </Link>
+            ) : null}
+          </Card>
+        </>
       ) : null}
 
       <SectionTitle>Cuenta</SectionTitle>

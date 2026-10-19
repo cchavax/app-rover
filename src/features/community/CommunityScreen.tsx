@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Avatar, Button, Card, ConfirmButton, ErrorBox, Loading, SectionTitle, useToast } from "../../components/ui.tsx";
 import { keys, useInviteCode, useMembers, usePhones, useRpc, type ReviewMembershipArgs, type SetRoleArgs } from "../../lib/queries.ts";
 import { errorMessage } from "../../lib/supabase.ts";
@@ -34,7 +35,7 @@ export function CommunityScreen({ community, myRole, uid }: { community: Communi
       <SectionTitle>Miembros ({active.length})</SectionTitle>
       <Card>
         {sorted.map((m, i) => (
-          <MemberRow key={m.id} m={m} first={i === 0} isCoord={isCoord} isMe={m.user_id === uid} phone={phones.data?.get(m.user_id) ?? null} cid={community.id} />
+          <MemberRow key={m.id} m={m} first={i === 0} isCoord={isCoord} isMe={m.user_id === uid} phone={phones.data?.get(m.user_id) ?? null} cid={community.id} heirs={sorted.filter((x) => x.user_id !== m.user_id && x.role !== "educador")} />
         ))}
       </Card>
       {isCoord ? (
@@ -117,10 +118,12 @@ function PendingRequests({ cid, pending }: { cid: string; pending: MemberWithPro
   );
 }
 
-function MemberRow({ m, first, isCoord, isMe, phone, cid }: { m: MemberWithProfile; first: boolean; isCoord: boolean; isMe: boolean; phone: string | null; cid: string }) {
+function MemberRow({ m, first, isCoord, isMe, phone, cid, heirs }: { m: MemberWithProfile; first: boolean; isCoord: boolean; isMe: boolean; phone: string | null; cid: string; heirs: MemberWithProfile[] }) {
   const toast = useToast();
   const setRole = useRpc<SetRoleArgs>("set_member_role", [keys.members(cid)]);
   const remove = useRpc<{ p_membership_id: string }>("remove_member", [keys.members(cid)]);
+  const transfer = useRpc<{ p_community_id: string; p_from: string; p_to: string }, number>("transfer_ownership", [["activities"], ["projects"]]);
+  const [heir, setHeir] = useState("");
   const name = displayName(m.profile);
 
   return (
@@ -163,6 +166,32 @@ function MemberRow({ m, first, isCoord, isMe, phone, cid }: { m: MemberWithProfi
           <span className="rounded-full bg-line/60 px-2.5 py-1 text-xs font-bold text-muted">{ROLE_LABEL[m.role]}</span>
         )}
       </div>
+      {isCoord && !isMe && heirs.length ? (
+        <details className="text-sm">
+          <summary className="cursor-pointer text-muted">Pasar sus actividades y proyectos a otro rover</summary>
+          <div className="mt-2 flex gap-2">
+            <select aria-label="Nuevo responsable" value={heir} onChange={(e) => setHeir(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 py-1.5">
+              <option value="">Elegí a quién</option>
+              {heirs.map((h) => (
+                <option key={h.user_id} value={h.user_id}>{displayName(h.profile)}</option>
+              ))}
+            </select>
+            <Button
+              className="min-h-9 px-3 py-1 text-sm"
+              disabled={!heir}
+              loading={transfer.isPending}
+              onClick={() =>
+                transfer.mutate(
+                  { p_community_id: cid, p_from: m.user_id, p_to: heir },
+                  { onSuccess: (n) => toast(n ? `Listo: ${n} cosas pasaron de dueño.` : `${name} no tenía nada a su nombre.`), onError: (e) => toast(errorMessage(e)) }
+                )
+              }
+            >
+              Pasar
+            </Button>
+          </div>
+        </details>
+      ) : null}
       {isCoord && !isMe ? (
         <ConfirmButton
           variant="ghost"

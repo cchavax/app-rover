@@ -10,8 +10,8 @@ Fogón (nombre provisorio) es una app web (PWA) para organizar una Comunidad Rov
 | Paso | Contenido | Estado |
 |---|---|---|
 | 0 | Proyecto base, PWA instalable, deploy | Listo |
-| 1 | Usuarios, comunidades, roles y permisos | En curso: base de datos lista, falta probar el login |
-| 2 | Actividades (recurrentes), proyectos, papelera | Pendiente |
+| 1 | Usuarios, comunidades, roles y permisos | Listo |
+| 2 | Actividades (recurrentes), proyectos, papelera | En prueba |
 | 3 | Asistencia | Pendiente |
 | 4 | Notificaciones push | Pendiente |
 | 5 | Compartir por WhatsApp, lectura sin conexión | Pendiente |

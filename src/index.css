@@ -34,3 +34,15 @@ body {
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* Colores por tipo de actividad y por proyecto (se usan con var() en estilos inline). */
+:root {
+  --t-reunion: #b3261e; --t-campamento: #2f6b3a; --t-servicio: #1f5f8b; --t-salida: #a05a00; --t-otro: #6d4c8f;
+  --p0: #c2410c; --p1: #2563a8; --p2: #2f7a45; --p3: #7c4a9e; --p4: #a1650a; --p5: #0e7490;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --t-reunion: #f0675b; --t-campamento: #6cc27b; --t-servicio: #6aaee0; --t-salida: #e7a948; --t-otro: #b997db;
+    --p0: #f28a52; --p1: #6aa6e8; --p2: #6cc27b; --p3: #c195e3; --p4: #e7b45a; --p5: #4fc3d9;
+  }
+}
