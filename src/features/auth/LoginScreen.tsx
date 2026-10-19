@@ -33,7 +33,8 @@ export function LoginScreen() {
         <GoogleIcon /> Entrar con Google
       </Button>
       <p className="text-[13px] text-muted">
-        Usamos tu nombre y tu foto de Google para que tu comunidad te reconozca. Nada más.
+        Usamos tu nombre y tu foto de Google para que tu comunidad te reconozca. Nada más.{" "}
+        <a href="/privacidad" className="underline">Política de privacidad</a> · <a href="/acerca" className="underline">Qué es Fogón</a>
       </p>
     </main>
   );

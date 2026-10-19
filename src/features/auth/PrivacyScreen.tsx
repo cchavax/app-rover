@@ -31,7 +31,8 @@ export function PrivacyScreen({ uid }: { uid: string }) {
         </p>
         <p>
           Podés borrar tu cuenta cuando quieras desde tu perfil: tu nombre se reemplaza por “Ex miembro” y se borra tu teléfono. Tus
-          datos se tratan según la Ley 25.326 de Protección de Datos Personales.
+          datos se tratan según la Ley 25.326 de Protección de Datos Personales.{" "}
+          <a href="/privacidad" target="_blank" rel="noopener" className="font-bold text-accent">Leer la política completa</a>
         </p>
       </Card>
       <label className="flex items-start gap-3 text-[15px]">

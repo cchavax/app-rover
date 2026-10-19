@@ -1,5 +1,6 @@
 import { BrowserRouter, NavLink, Navigate, Route, Routes } from "react-router";
 import { AppProvider } from "./app/context.tsx";
+import { publicPageFor } from "./features/public/PublicPages.tsx";
 import { ErrorBox, Loading } from "./components/ui.tsx";
 import { ActivityDetailScreen } from "./features/activities/ActivityDetailScreen.tsx";
 import { ActivityFormScreen } from "./features/activities/ActivityFormScreen.tsx";
@@ -25,6 +26,9 @@ import { errorMessage, supabaseConfigured } from "./lib/supabase.ts";
 import { displayName, type Community, type MemberRole, type Profile } from "./lib/types.ts";
 
 export default function App() {
+  // Páginas públicas: se ven sin iniciar sesión.
+  const publicPage = publicPageFor(window.location.pathname);
+  if (publicPage) return publicPage;
   if (!supabaseConfigured) {
     return (
       <main className="mx-auto max-w-xl px-4 py-10">
