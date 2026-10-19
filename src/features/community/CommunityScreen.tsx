@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Sheet } from "../../components/Sheet.tsx";
+import { HomeCard } from "./HomeCard.tsx";
 import { Avatar, Button, Card, ConfirmButton, ErrorBox, Loading, SectionTitle, useToast } from "../../components/ui.tsx";
 import { keys, useInviteCode, useMembers, usePhones, useRpc, type ReviewMembershipArgs, type SetRoleArgs } from "../../lib/queries.ts";
 import { errorMessage } from "../../lib/supabase.ts";
@@ -32,6 +33,7 @@ export function CommunityScreen({ community, myRole, uid }: { community: Communi
         </p>
       </Card>
 
+      <HomeCard community={community} isCoord={isCoord} />
       {isCoord ? <InviteCard community={community} /> : null}
       {isCoord && pending.length > 0 ? <PendingRequests cid={community.id} pending={pending} /> : null}
 

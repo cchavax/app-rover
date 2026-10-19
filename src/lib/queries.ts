@@ -35,7 +35,7 @@ export function useCommunity(cid: string | undefined) {
       must<Community>(
         await supabase
           .from("communities")
-          .select("id, name, scout_group, city, timezone, status, created_by, created_at")
+          .select("id, name, scout_group, city, timezone, status, created_by, created_at, home_name, home_lat, home_lng")
           .eq("id", cid ?? "")
           .single()
       )

@@ -24,6 +24,9 @@ export interface Community {
   status: CommunityStatus;
   created_by: string;
   created_at: string;
+  home_name: string | null;
+  home_lat: number | null;
+  home_lng: number | null;
 }
 
 export interface Membership {

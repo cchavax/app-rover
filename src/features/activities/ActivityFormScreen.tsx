@@ -25,6 +25,7 @@ type Form = {
   projectId: string;
   description: string;
   coords: LatLng | null;
+  virtual: boolean;
   repeat: Repeat;
   everyN: string;
   until: string;
@@ -52,7 +53,8 @@ export function ActivityFormScreen() {
         location: a.location ?? "",
         projectId: a.project_id ?? "",
         description: a.description ?? "",
-        coords: a.location_lat != null && a.location_lng != null ? { lat: a.location_lat, lng: a.location_lng } : null
+        coords: a.location_lat != null && a.location_lng != null ? { lat: a.location_lat, lng: a.location_lng } : null,
+        virtual: a.location_lat == null && !a.location
       }
     : null;
   return <ActivityForm key={id ?? "nueva"} initial={initial} activityId={id} isSeries={Boolean(a?.series_id)} />;
@@ -68,6 +70,10 @@ function ActivityForm({
   isSeries: boolean;
 }) {
   const { community, tz } = useApp();
+  const home =
+    community.home_lat != null && community.home_lng != null
+      ? { name: community.home_name || "Sede del grupo", lat: community.home_lat, lng: community.home_lng }
+      : null;
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
@@ -87,14 +93,14 @@ function ActivityForm({
     projectId: params.get("proyecto") ?? "",
     description: "",
     coords: null,
+    virtual: false,
     ...(initial ?? {}),
     repeat: "no",
     everyN: "3",
     until: addDaysKey(initial?.date ?? defaultDate, 56)
   }));
-  const [errors, setErrors] = useState<Partial<Record<"title" | "time" | "until" | "server", string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<"title" | "time" | "until" | "place" | "server", string>>>({});
   const [saving, setSaving] = useState(false);
-  const [mapOpen, setMapOpen] = useState(Boolean(initial?.coords));
 
   // Si cambia la fecha de inicio y la de fin era la misma, la acompaña.
   const setDate = (date: string) =>
@@ -141,6 +147,8 @@ function ActivityForm({
     const startsAt = zonedToIso(f.date, f.start, tz);
     const endsAt = zonedToIso(f.endDate, f.end, tz);
     if (!errs.time && endsAt <= startsAt) errs.time = "El fin tiene que ser después del inicio.";
+    if (!f.virtual && !f.coords) errs.place = "Marcá el lugar en el mapa: buscalo, tocá el mapa o usá la sede. Si es por videollamada, tildá “Es virtual”.";
+    if (!f.virtual && f.location.trim().length < 2) errs.place = errs.place ?? "Escribí el nombre del lugar.";
     if (f.repeat !== "no") {
       if (f.until < f.date) errs.until = "La fecha “hasta” tiene que ser posterior al inicio.";
       if (f.until > addDaysKey(f.date, 365)) errs.until = "Una serie puede durar como máximo un año.";
@@ -158,7 +166,7 @@ function ActivityForm({
             p_id: activityId, p_title: f.title, p_type: f.type, p_starts_at: startsAt, p_ends_at: endsAt,
             p_description: f.description, p_location: f.location, p_project_id: f.projectId || null,
             p_scope: isSeries && scopeFollowing ? "esta_y_siguientes" : "solo_esta",
-            p_lat: f.coords?.lat ?? null, p_lng: f.coords?.lng ?? null
+            p_lat: f.virtual ? null : f.coords?.lat ?? null, p_lng: f.virtual ? null : f.coords?.lng ?? null
           })
         );
       } else {
@@ -166,7 +174,7 @@ function ActivityForm({
           await supabase.rpc("create_activity", {
             p_community_id: community.id, p_title: f.title, p_type: f.type, p_starts_at: startsAt, p_ends_at: endsAt,
             p_description: f.description, p_location: f.location, p_project_id: f.projectId || null, p_recurrence: recurrence(),
-            p_lat: f.coords?.lat ?? null, p_lng: f.coords?.lng ?? null
+            p_lat: f.virtual ? null : f.coords?.lat ?? null, p_lng: f.virtual ? null : f.coords?.lng ?? null
           })
         );
       }
@@ -224,21 +232,39 @@ function ActivityForm({
       {errors.time ? <span className="-mt-2 text-[13px] font-bold text-accent">{errors.time}</span> : null}
 
       <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3.5">
-        <Field id="f_place" label="Lugar" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="Sede del grupo scout" />
-        {mapOpen ? (
-          <Suspense fallback={<div className="flex h-60 items-center justify-center gap-2 text-muted"><Spinner /> Cargando mapa…</div>}>
-            <LocationPicker
-              value={f.coords}
-              query={f.location}
-              onChange={(coords) => setF((prev) => ({ ...prev, coords }))}
-              onPlaceName={(name) => setF((prev) => ({ ...prev, location: prev.location.trim() ? prev.location : name }))}
-            />
-          </Suspense>
-        ) : (
-          <button type="button" onClick={() => setMapOpen(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-dashed border-line px-4 font-bold text-accent">
-            Marcar en el mapa
-          </button>
-        )}
+        <Field
+          id="f_place"
+          label={f.virtual ? "Dónde (opcional)" : "Lugar"}
+          value={f.location}
+          onChange={(e) => setF({ ...f, location: e.target.value })}
+          placeholder={f.virtual ? "Meet, Zoom, grupo de WhatsApp…" : "Escribí el lugar y buscalo en el mapa"}
+        />
+        <label className="flex items-center gap-2.5 text-[15px]">
+          <input type="checkbox" checked={f.virtual} onChange={(e) => setF({ ...f, virtual: e.target.checked })} className="h-5 w-5 accent-accent" />
+          Es virtual / no tiene un lugar físico
+        </label>
+        {!f.virtual ? (
+          <>
+            {home ? (
+              <button
+                type="button"
+                onClick={() => setF((prev) => ({ ...prev, location: home.name, coords: { lat: home.lat, lng: home.lng } }))}
+                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-accent-soft px-4 font-bold text-accent"
+              >
+                Usar la sede: {home.name}
+              </button>
+            ) : null}
+            <Suspense fallback={<div className="flex h-60 items-center justify-center gap-2 text-muted"><Spinner /> Cargando mapa…</div>}>
+              <LocationPicker
+                value={f.coords}
+                query={f.location}
+                onChange={(coords) => setF((prev) => ({ ...prev, coords }))}
+                onPlaceName={(name) => setF((prev) => ({ ...prev, location: prev.location.trim() ? prev.location : name }))}
+              />
+            </Suspense>
+          </>
+        ) : null}
+        {errors.place ? <span className="text-[13px] font-bold text-accent">{errors.place}</span> : null}
       </div>
 
       <div className="flex flex-col gap-1.5">

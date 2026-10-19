@@ -76,6 +76,23 @@ export default function LocationPicker({ value, onChange, onPlaceName, query }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Si el valor cambia desde afuera (ej. "Usar la sede"), movemos el pin y el mapa.
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+    if (!value) {
+      marker.current?.remove();
+      marker.current = null;
+      return;
+    }
+    const cur = marker.current?.getLatLng();
+    if (!cur || Math.abs(cur.lat - value.lat) > 1e-7 || Math.abs(cur.lng - value.lng) > 1e-7) {
+      putMarker(value);
+      m.setView([value.lat, value.lng], Math.max(m.getZoom(), 16));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value?.lat, value?.lng]);
+
   async function search(e: FormEvent) {
     e.preventDefault();
     if (query.trim().length < 3) return setError("Escribí el nombre del lugar arriba (al menos 3 letras).");
