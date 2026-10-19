@@ -1,4 +1,4 @@
-import { BrowserRouter, NavLink, Navigate, Route, Routes } from "react-router";
+import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router";
 import { AppProvider } from "./app/context.tsx";
 import { publicPageFor } from "./features/public/PublicPages.tsx";
 import { ErrorBox, Loading } from "./components/ui.tsx";
@@ -19,7 +19,7 @@ import { PrivacyScreen } from "./features/auth/PrivacyScreen.tsx";
 import { CommunityScreen } from "./features/community/CommunityScreen.tsx";
 import { OnboardingScreen } from "./features/onboarding/OnboardingScreen.tsx";
 import { ProfileScreen } from "./features/profile/ProfileScreen.tsx";
-import { useEffect } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { refreshPushSubscription } from "./lib/push.ts";
 import { useCommunity, useMyMemberships, useProfile } from "./lib/queries.ts";
 import { errorMessage, supabaseConfigured } from "./lib/supabase.ts";
@@ -110,13 +110,19 @@ function Shell({ profile, community, role }: { profile: Profile; community: Comm
 
   const content = (
     <BrowserRouter>
-      <header className="sticky top-0 z-20 border-b border-line bg-surface" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      {/*
+        Layout de app nativa: la página no se desplaza, solo el contenido del medio.
+        Evita el bug de iOS (app instalada) que corre la barra de abajo al rebotar el scroll.
+      */}
+      <div className="fixed inset-0 flex flex-col bg-bg">
+      <header className="z-20 flex-none border-b border-line bg-surface" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <div className="mx-auto max-w-xl px-4 py-3">
           <p className="text-xs font-bold uppercase tracking-widest text-muted">{community?.name ?? "Fogón"}</p>
           <h1 className="font-display text-2xl font-extrabold">Fogón</h1>
         </div>
       </header>
 
+      <ScrollArea>
       <main className="mx-auto max-w-xl px-4 pb-28 pt-4">
         <Routes>
           {community && role ? (
@@ -140,9 +146,10 @@ function Shell({ profile, community, role }: { profile: Profile; community: Comm
           <Route path="*" element={<Navigate to={home} replace />} />
         </Routes>
       </main>
+      </ScrollArea>
 
       {tabs.length > 0 ? (
-        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Secciones">
+        <nav className="z-20 flex-none border-t border-line bg-surface" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Secciones">
           <div className="mx-auto grid max-w-xl" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
             {tabs.map((t) => (
               <NavLink
@@ -161,7 +168,22 @@ function Shell({ profile, community, role }: { profile: Profile; community: Comm
           </div>
         </nav>
       ) : null}
+      </div>
     </BrowserRouter>
   );
   return community && role ? <AppProvider value={{ community, role, profile }}>{content}</AppProvider> : content;
+}
+
+/** Zona que se desplaza. Vuelve arriba al cambiar de pantalla. */
+function ScrollArea({ children }: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { pathname } = useLocation();
+  useEffect(() => {
+    ref.current?.scrollTo(0, 0);
+  }, [pathname]);
+  return (
+    <div ref={ref} id="scroll-area" className="min-h-0 flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
+      {children}
+    </div>
+  );
 }
