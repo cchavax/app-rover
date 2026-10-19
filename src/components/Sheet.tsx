@@ -14,7 +14,7 @@ export function Sheet({ title, text, onClose, children }: { title: string; text?
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="flex w-full max-w-xl flex-col gap-2.5 rounded-t-3xl bg-surface px-4 pt-5"
+        className="flex max-h-[88vh] w-full max-w-xl flex-col gap-2.5 overflow-y-auto overscroll-contain rounded-t-3xl bg-surface px-4 pt-5"
         style={{ paddingBottom: "calc(18px + env(safe-area-inset-bottom))" }}
       >
         <h3 className="font-display text-xl font-extrabold">{title}</h3>

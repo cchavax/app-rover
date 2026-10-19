@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Sheet } from "../../components/Sheet.tsx";
 import { Avatar, Button, Card, ConfirmButton, ErrorBox, Loading, SectionTitle, useToast } from "../../components/ui.tsx";
 import { keys, useInviteCode, useMembers, usePhones, useRpc, type ReviewMembershipArgs, type SetRoleArgs } from "../../lib/queries.ts";
 import { errorMessage } from "../../lib/supabase.ts";
@@ -12,6 +13,8 @@ export function CommunityScreen({ community, myRole, uid }: { community: Communi
   const active = (members.data ?? []).filter((m) => m.status === "activo");
   const pending = (members.data ?? []).filter((m) => m.status === "pendiente");
   const phones = usePhones(community.id, active.map((m) => m.user_id));
+  const [openId, setOpenId] = useState<string | null>(null);
+  const openMember = active.find((m) => m.id === openId);
 
   if (members.isLoading) return <Loading />;
   if (members.error) return <ErrorBox message={errorMessage(members.error)} onRetry={() => void members.refetch()} />;
@@ -35,9 +38,34 @@ export function CommunityScreen({ community, myRole, uid }: { community: Communi
       <SectionTitle>Miembros ({active.length})</SectionTitle>
       <Card>
         {sorted.map((m, i) => (
-          <MemberRow key={m.id} m={m} first={i === 0} isCoord={isCoord} isMe={m.user_id === uid} phone={phones.data?.get(m.user_id) ?? null} cid={community.id} heirs={sorted.filter((x) => x.user_id !== m.user_id && x.role !== "educador")} />
+          <button
+            key={m.id}
+            onClick={() => setOpenId(m.id)}
+            className={`flex w-full items-center gap-3 px-4 py-3 text-left ${i ? "border-t border-line" : ""}`}
+          >
+            <Avatar name={displayName(m.profile)} url={m.profile?.avatar_url} size={36} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-bold">
+                {displayName(m.profile)} {m.user_id === uid ? <span className="text-sm font-normal text-muted">(vos)</span> : null}
+              </span>
+              {phones.data?.get(m.user_id) ? <span className="block text-sm text-muted">{phones.data.get(m.user_id)}</span> : null}
+            </span>
+            <span className="rounded-full bg-line/60 px-2.5 py-1 text-xs font-bold text-muted">{ROLE_LABEL[m.role]}</span>
+            <span className="text-muted" aria-hidden="true">›</span>
+          </button>
         ))}
       </Card>
+      {openMember ? (
+        <MemberSheet
+          m={openMember}
+          isCoord={isCoord}
+          isMe={openMember.user_id === uid}
+          phone={phones.data?.get(openMember.user_id) ?? null}
+          cid={community.id}
+          heirs={sorted.filter((x) => x.user_id !== openMember.user_id && x.role !== "educador")}
+          onClose={() => setOpenId(null)}
+        />
+      ) : null}
       {isCoord ? (
         <p className="text-[13px] text-muted">
           Siempre tiene que quedar al menos un coordinador. Cuando alguien se va, sus actividades y su historial se conservan.
@@ -118,31 +146,52 @@ function PendingRequests({ cid, pending }: { cid: string; pending: MemberWithPro
   );
 }
 
-function MemberRow({ m, first, isCoord, isMe, phone, cid, heirs }: { m: MemberWithProfile; first: boolean; isCoord: boolean; isMe: boolean; phone: string | null; cid: string; heirs: MemberWithProfile[] }) {
+function MemberSheet({
+  m,
+  isCoord,
+  isMe,
+  phone,
+  cid,
+  heirs,
+  onClose
+}: {
+  m: MemberWithProfile;
+  isCoord: boolean;
+  isMe: boolean;
+  phone: string | null;
+  cid: string;
+  heirs: MemberWithProfile[];
+  onClose: () => void;
+}) {
   const toast = useToast();
   const setRole = useRpc<SetRoleArgs>("set_member_role", [keys.members(cid)]);
   const remove = useRpc<{ p_membership_id: string }>("remove_member", [keys.members(cid)]);
   const transfer = useRpc<{ p_community_id: string; p_from: string; p_to: string }, number>("transfer_ownership", [["activities"], ["projects"]]);
   const [heir, setHeir] = useState("");
   const name = displayName(m.profile);
+  const digits = phone?.replace(/\D/g, "") ?? "";
 
   return (
-    <div className={`flex flex-col gap-2 px-4 py-3 ${first ? "" : "border-t border-line"}`}>
+    <Sheet title={name} onClose={onClose}>
       <div className="flex items-center gap-3">
-        <Avatar name={name} url={m.profile?.avatar_url} size={36} />
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-bold">
-            {name} {isMe ? <span className="text-sm font-normal text-muted">(vos)</span> : null}
-          </div>
-          {phone ? (
-            <a href={`https://wa.me/${phone.replace(/\D/g, "")}`} target="_blank" rel="noopener" className="text-sm text-accent">
-              {phone}
-            </a>
-          ) : null}
+        <Avatar name={name} url={m.profile?.avatar_url} size={52} />
+        <div className="min-w-0">
+          <p className="font-bold">{ROLE_LABEL[m.role]}{isMe ? " · vos" : ""}</p>
+          {phone ? <p className="text-sm text-muted">{phone}</p> : <p className="text-sm text-muted">Sin teléfono cargado</p>}
         </div>
-        {isCoord ? (
+      </div>
+
+      {phone && !isMe ? (
+        <a href={`https://wa.me/${digits.startsWith("54") ? digits : "549" + digits}`} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#1f8f4e] px-4 font-bold text-white">
+          Escribirle por WhatsApp
+        </a>
+      ) : null}
+
+      {isCoord ? (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="m_role" className="text-sm font-bold">Rol</label>
           <select
-            aria-label={`Rol de ${name}`}
+            id="m_role"
             value={m.role}
             disabled={setRole.isPending}
             onChange={(e) =>
@@ -154,30 +203,26 @@ function MemberRow({ m, first, isCoord, isMe, phone, cid, heirs }: { m: MemberWi
                 }
               )
             }
-            className="rounded-lg border border-line bg-surface px-2 py-1.5 text-sm"
+            className="rounded-xl border border-line bg-surface px-3 py-2.5 text-base"
           >
             {(Object.keys(ROLE_LABEL) as MemberRole[]).map((r) => (
-              <option key={r} value={r}>
-                {ROLE_LABEL[r]}
-              </option>
+              <option key={r} value={r}>{ROLE_LABEL[r]}</option>
             ))}
           </select>
-        ) : (
-          <span className="rounded-full bg-line/60 px-2.5 py-1 text-xs font-bold text-muted">{ROLE_LABEL[m.role]}</span>
-        )}
-      </div>
+        </div>
+      ) : null}
+
       {isCoord && !isMe && heirs.length ? (
-        <details className="text-sm">
-          <summary className="cursor-pointer text-muted">Pasar sus actividades y proyectos a otro rover</summary>
-          <div className="mt-2 flex gap-2">
-            <select aria-label="Nuevo responsable" value={heir} onChange={(e) => setHeir(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 py-1.5">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="m_heir" className="text-sm font-bold">Pasar sus actividades y proyectos a</label>
+          <div className="flex gap-2">
+            <select id="m_heir" value={heir} onChange={(e) => setHeir(e.target.value)} className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 py-2.5 text-base">
               <option value="">Elegí a quién</option>
               {heirs.map((h) => (
                 <option key={h.user_id} value={h.user_id}>{displayName(h.profile)}</option>
               ))}
             </select>
             <Button
-              className="min-h-9 px-3 py-1 text-sm"
               disabled={!heir}
               loading={transfer.isPending}
               onClick={() =>
@@ -190,18 +235,26 @@ function MemberRow({ m, first, isCoord, isMe, phone, cid, heirs }: { m: MemberWi
               Pasar
             </Button>
           </div>
-        </details>
+          <p className="text-[13px] text-muted">Útil cuando alguien egresa o deja la comunidad.</p>
+        </div>
       ) : null}
+
       {isCoord && !isMe ? (
         <ConfirmButton
-          variant="ghost"
-          className="min-h-8 self-end px-2 py-0 text-sm"
           confirmLabel={`¿Dar de baja a ${name}?`}
-          onConfirm={() => remove.mutate({ p_membership_id: m.id }, { onSuccess: () => toast(`${name} fue dado de baja.`), onError: (err) => toast(errorMessage(err)) })}
+          loading={remove.isPending}
+          onConfirm={() =>
+            remove.mutate(
+              { p_membership_id: m.id },
+              { onSuccess: () => { toast(`${name} fue dado de baja.`); onClose(); }, onError: (err) => toast(errorMessage(err)) }
+            )
+          }
         >
           Dar de baja
         </ConfirmButton>
       ) : null}
-    </div>
+
+      <Button variant="ghost" onClick={onClose}>Cerrar</Button>
+    </Sheet>
   );
 }
