@@ -30,13 +30,15 @@ end $$;
 grant execute on all functions in schema pg_temp to authenticated;
 set local role authenticated;
 
--- ===== Link de Maps =====
+-- ===== Ubicación en el mapa =====
 select test.as_user('00000000-0000-0000-0000-000000000002');
 insert into ids values ('taller', public.create_activity('a0000000-0000-0000-0000-00000000000a', 'Taller de mochila', 'salida',
-  '2027-11-13 15:00-03', '2027-11-13 18:00-03', null, 'Reserva San Martín', null, null, 'https://maps.app.goo.gl/abc123'));
-select test.ok((select maps_url from public.activities where id = pg_temp.id('taller')) = 'https://maps.app.goo.gl/abc123', 'se guarda el link de Maps');
+  '2027-11-13 15:00-03', '2027-11-13 18:00-03', null, 'Reserva San Martín', null, null, -31.3846, -64.2392));
+select test.ok((select location_lat from public.activities where id = pg_temp.id('taller')) = -31.3846, 'se guarda el punto del mapa');
 select test.throws($$select public.create_activity('a0000000-0000-0000-0000-00000000000a', 'X', 'salida',
-  '2027-11-13 15:00-03', '2027-11-13 18:00-03', null, null, null, null, 'javascript:alert(1)')$$, 'solo se aceptan links https', 'https://');
+  '2027-11-13 15:00-03', '2027-11-13 18:00-03', null, null, null, null, -31.4, null)$$, 'la ubicación necesita latitud y longitud', 'latitud');
+select test.throws($$select public.create_activity('a0000000-0000-0000-0000-00000000000a', 'X', 'salida',
+  '2027-11-13 15:00-03', '2027-11-13 18:00-03', null, null, null, null, 120, 10)$$, 'una latitud imposible se rechaza', 'check');
 
 -- ===== Texto de la notificación =====
 select test.ok(pg_temp.last('nueva', 'title') = 'Taller de mochila', 'el título de la notificación es solo el nombre (no se corta)');
@@ -66,6 +68,15 @@ select test.ok((select response from public.rsvps where activity_id = pg_temp.id
 select test.ok(pg_temp.last('cambio', 'title') = 'Vuelve: Taller de mochila', 'avisa que vuelve');
 select test.ok(pg_temp.last('cambio', 'body') = 'Se reprogramó para el sábado 20 de noviembre a las 16:00 en Reserva San Martín. Si ya no podés, cambiá tu respuesta.',
   'y para cuándo quedó');
+
+-- Mover el pin avisa a los que van (cambió el lugar).
+reset role;
+update public.notification_queue set sent_at = now();
+set local role authenticated;
+select test.as_user('00000000-0000-0000-0000-000000000002');
+select public.update_activity(pg_temp.id('taller'), 'Taller de mochila', 'salida', '2027-11-20 16:00-03', '2027-11-20 19:00-03',
+  null, 'Reserva San Martín', null, 'solo_esta', -31.3900, -64.2400);
+select test.ok(pg_temp.last('cambio', 'title') = 'Cambió el lugar: Taller de mochila', 'mover el pin avisa que cambió el lugar');
 
 reset role;
 \o

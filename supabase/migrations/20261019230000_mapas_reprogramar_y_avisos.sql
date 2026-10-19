@@ -1,12 +1,14 @@
 -- =====================================================================
 -- Mejoras pedidas por la comunidad:
---   * Link de Google Maps en las actividades.
+--   * Ubicación exacta (pin en el mapa) en las actividades.
 --   * Reprogramar (también una actividad suspendida).
 --   * Notificaciones más claras.
 -- =====================================================================
 
 alter table public.activities
-  add column maps_url text check (maps_url is null or (maps_url ~ '^https://' and length(maps_url) <= 500));
+  add column location_lat double precision check (location_lat between -90 and 90),
+  add column location_lng double precision check (location_lng between -180 and 180),
+  add constraint activities_location_pair check ((location_lat is null) = (location_lng is null));
 
 -- ---------- Textos en castellano para las notificaciones ----------
 -- "sábado 14 de noviembre"
@@ -54,28 +56,18 @@ language sql stable set search_path = '' as $$
 $$;
 
 -- =====================================================================
--- Actividades: crear y editar con link de Maps
--- (se reemplazan las funciones del paso 2 para sumar p_maps_url)
+-- Actividades: crear y editar con ubicación en el mapa
+-- (se reemplazan las funciones del paso 2 para sumar p_lat / p_lng)
 -- =====================================================================
 drop function public.create_activity(uuid, text, public.activity_type, timestamptz, timestamptz, text, text, uuid, jsonb);
 drop function public.update_activity(uuid, text, public.activity_type, timestamptz, timestamptz, text, text, uuid, public.edit_scope);
-
-create function public.clean_maps_url(p text) returns text
-language plpgsql immutable set search_path = '' as $$
-declare v text := nullif(trim(p), '');
-begin
-  if v is null then return null; end if;
-  if v !~ '^https://' then raise exception 'El link de Maps tiene que empezar con https://'; end if;
-  if length(v) > 500 then raise exception 'El link de Maps es demasiado largo.'; end if;
-  return v;
-end $$;
 
 create function public.create_activity(
   p_community_id uuid, p_title text, p_type public.activity_type,
   p_starts_at timestamptz, p_ends_at timestamptz,
   p_description text default null, p_location text default null,
   p_project_id uuid default null, p_recurrence jsonb default null,
-  p_maps_url text default null
+  p_lat double precision default null, p_lng double precision default null
 ) returns uuid
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -91,8 +83,8 @@ declare
   first_id uuid;
   d date;
   new_id uuid;
-  maps text := public.clean_maps_url(p_maps_url);
 begin
+  if (p_lat is null) <> (p_lng is null) then raise exception 'La ubicación necesita latitud y longitud.'; end if;
   if not public.can_create_in(p_community_id) then
     raise exception 'No podés crear actividades en esta comunidad.';
   end if;
@@ -107,9 +99,9 @@ begin
   local_start := p_starts_at at time zone tz;
 
   if p_recurrence is null or p_recurrence = 'null'::jsonb then
-    insert into public.activities (community_id, project_id, title, description, type, starts_at, ends_at, location, maps_url, created_by)
+    insert into public.activities (community_id, project_id, title, description, type, starts_at, ends_at, location, location_lat, location_lng, created_by)
     values (p_community_id, p_project_id, trim(p_title), nullif(trim(p_description), ''), p_type, p_starts_at, p_ends_at,
-            nullif(trim(p_location), ''), maps, uid)
+            nullif(trim(p_location), ''), p_lat, p_lng, uid)
     returning id into first_id;
     return first_id;
   end if;
@@ -135,11 +127,11 @@ begin
   returning id into sid;
 
   for d in select * from public.recurrence_dates(local_start::date, until_d, freq, every, mweek) loop
-    insert into public.activities (community_id, series_id, project_id, title, description, type, starts_at, ends_at, location, maps_url, created_by)
+    insert into public.activities (community_id, series_id, project_id, title, description, type, starts_at, ends_at, location, location_lat, location_lng, created_by)
     values (p_community_id, sid, p_project_id, trim(p_title), nullif(trim(p_description), ''), p_type,
             (d + local_start::time) at time zone tz,
             ((d + local_start::time) at time zone tz) + dur,
-            nullif(trim(p_location), ''), maps, uid)
+            nullif(trim(p_location), ''), p_lat, p_lng, uid)
     returning id into new_id;
     first_id := coalesce(first_id, new_id);
   end loop;
@@ -153,7 +145,7 @@ create function public.update_activity(
   p_starts_at timestamptz, p_ends_at timestamptz,
   p_description text default null, p_location text default null,
   p_project_id uuid default null, p_scope public.edit_scope default 'solo_esta',
-  p_maps_url text default null
+  p_lat double precision default null, p_lng double precision default null
 ) returns void
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -162,8 +154,8 @@ declare
   tz text;
   new_time time;
   dur interval := p_ends_at - p_starts_at;
-  maps text := public.clean_maps_url(p_maps_url);
 begin
+  if (p_lat is null) <> (p_lng is null) then raise exception 'La ubicación necesita latitud y longitud.'; end if;
   select * into a from public.activities where id = p_id and deleted_at is null;
   if not found then raise exception 'La actividad no existe.'; end if;
   if a.created_by <> uid or not public.can_create_in(a.community_id) then
@@ -179,7 +171,7 @@ begin
   update public.activities
      set title = trim(p_title), type = p_type, starts_at = p_starts_at, ends_at = p_ends_at,
          description = nullif(trim(p_description), ''), location = nullif(trim(p_location), ''),
-         project_id = p_project_id, maps_url = maps
+         project_id = p_project_id, location_lat = p_lat, location_lng = p_lng
    where id = a.id;
 
   if p_scope = 'esta_y_siguientes' and a.series_id is not null then
@@ -188,7 +180,7 @@ begin
     update public.activities x
        set title = trim(p_title), type = p_type,
            description = nullif(trim(p_description), ''), location = nullif(trim(p_location), ''),
-           project_id = p_project_id, maps_url = maps,
+           project_id = p_project_id, location_lat = p_lat, location_lng = p_lng,
            starts_at = ((x.starts_at at time zone tz)::date + new_time) at time zone tz,
            ends_at   = (((x.starts_at at time zone tz)::date + new_time) at time zone tz) + dur
      where x.series_id = a.series_id and x.id <> a.id and x.starts_at > a.starts_at
@@ -274,7 +266,8 @@ begin
       'Ahora es el ' || private.fmt_day(new.starts_at, tz) || ' a las ' || private.fmt_time(new.starts_at, tz)
       || coalesce(' en ' || new.location, '') || '. Si ya no podés, cambiá tu respuesta.');
   elsif new.deleted_at is null and new.status = 'programada' and new.starts_at > now()
-        and new.location is distinct from old.location then
+        and (new.location is distinct from old.location or new.location_lat is distinct from old.location_lat
+             or new.location_lng is distinct from old.location_lng) then
     perform private.notify_attendees(new, 'cambio', 'Cambió el lugar: ' || new.title,
       coalesce('Ahora es en ' || new.location, 'Se sacó el lugar') || ', el ' || private.fmt_day(new.starts_at, tz)
       || ' a las ' || private.fmt_time(new.starts_at, tz) || '.');
@@ -328,8 +321,7 @@ end $$;
 revoke execute on all functions in schema public from public, anon;
 revoke execute on all functions in schema private from public, anon, authenticated;
 grant execute on function
-  public.create_activity(uuid, text, public.activity_type, timestamptz, timestamptz, text, text, uuid, jsonb, text),
-  public.update_activity(uuid, text, public.activity_type, timestamptz, timestamptz, text, text, uuid, public.edit_scope, text),
+  public.create_activity(uuid, text, public.activity_type, timestamptz, timestamptz, text, text, uuid, jsonb, double precision, double precision),
+  public.update_activity(uuid, text, public.activity_type, timestamptz, timestamptz, text, text, uuid, public.edit_scope, double precision, double precision),
   public.reschedule_activity(uuid, timestamptz, timestamptz)
 to authenticated;
-revoke execute on function public.clean_maps_url(text) from authenticated;

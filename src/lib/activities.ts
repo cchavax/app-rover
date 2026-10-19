@@ -17,6 +17,8 @@ export interface Activity {
   starts_at: string;
   ends_at: string;
   location: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
   status: "programada" | "cancelada";
   created_by: string;
   deleted_at: string | null;
@@ -86,7 +88,7 @@ export const activityKeys = {
   trash: (cid: string) => ["trash", cid] as const
 };
 
-const ACT_COLS = "id, community_id, series_id, project_id, title, description, type, starts_at, ends_at, location, status, created_by, deleted_at, attendance_taken_at";
+const ACT_COLS = "id, community_id, series_id, project_id, title, description, type, starts_at, ends_at, location, location_lat, location_lng, status, created_by, deleted_at, attendance_taken_at";
 
 /** Actividades no borradas que se solapan con [from, to). */
 export function useActivitiesInRange(cid: string, fromIso: string, toIso: string) {

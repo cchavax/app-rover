@@ -40,7 +40,7 @@ export function ActivityCard({ a, project, rsvp, showRsvp = false }: { a: Activi
 
 function StatusPill({ cancelled, started, rsvp, showRsvp }: { cancelled: boolean; started: boolean; rsvp: Rsvp | undefined; showRsvp: boolean }) {
   const base = "whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold";
-  if (cancelled) return <span className={`${base} bg-line/70 text-muted`}>Cancelada</span>;
+  if (cancelled) return <span className={`${base} bg-line/70 text-muted`}>Suspendida</span>;
   if (!showRsvp) return <span />;
   if (rsvp) return <span className={`${base} ${PILL[rsvp]}`}>{RSVP_LABEL[rsvp]}</span>;
   if (started) return <span className={`${base} bg-line/70 text-muted`}>En curso</span>;

@@ -93,3 +93,12 @@ body {
   .fogon-flame { animation: none; }
   .fogon-spark { animation: none; opacity: 0; }
 }
+
+/* Pin del mapa (Leaflet) */
+.fogon-pin { background: none; border: 0; }
+.fogon-pin span {
+  display: block; width: 30px; height: 30px; border-radius: 50% 50% 50% 0;
+  background: var(--color-accent); transform: rotate(-45deg); border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+}
+.leaflet-container { font: inherit; background: var(--color-line); }

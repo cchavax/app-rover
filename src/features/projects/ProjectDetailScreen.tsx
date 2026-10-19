@@ -28,7 +28,21 @@ export function ProjectDetailScreen() {
   const now = new Date();
   const next = (acts.data ?? []).filter((a) => new Date(a.ends_at) > now);
   const past = (acts.data ?? []).filter((a) => new Date(a.ends_at) <= now).reverse();
-  const wa = `https://wa.me/?text=${encodeURIComponent(`*${p.name}*\n${p.goal ?? ""}\n${window.location.origin}/proyectos/${p.id}`)}`;
+  const nextAct = next[0];
+  const waText = [
+    `🔥 *${p.name}*`,
+    `_Proyecto · ${PROJECT_STATUS[p.status]}_`,
+    "",
+    p.goal ? `🎯 ${p.goal}` : null,
+    `📅 Del ${longDay(p.start_date)} al ${longDay(p.end_date)}`,
+    `👥 A cargo: ${p.owners.map((o) => name(o.user_id)).join(", ")}`,
+    nextAct ? `⏭️ Próxima actividad: ${nextAct.title}` : null,
+    "",
+    `👉 Mirá el proyecto en Fogón: ${window.location.origin}/proyectos/${p.id}`
+  ]
+    .filter((l) => l !== null)
+    .join("\n");
+  const wa = `https://wa.me/?text=${encodeURIComponent(waText)}`;
 
   async function remove() {
     try {

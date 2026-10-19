@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { Suspense, lazy, useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useApp } from "../../app/context.tsx";
@@ -6,6 +6,10 @@ import { Button, ErrorBox, Field, Loading, useToast } from "../../components/ui.
 import { TYPES, activityKeys, useActivity, useProjects, type ActivityType } from "../../lib/activities.ts";
 import { addDaysKey, dayKey, daysInMonthOfKey, dowOfKey, ordinal, timeIn, todayKey, weekdayName, zonedToIso } from "../../lib/dates.ts";
 import { errorMessage, must, supabase } from "../../lib/supabase.ts";
+import { Spinner } from "../../components/Loader.tsx";
+import type { LatLng } from "../../lib/maps.ts";
+
+const LocationPicker = lazy(() => import("../../components/LocationPicker.tsx"));
 import { BackLink } from "./ActivityCard.tsx";
 
 type Repeat = "no" | "w1" | "w2" | "wN" | "md" | "mw" | "ml";
@@ -20,6 +24,7 @@ type Form = {
   location: string;
   projectId: string;
   description: string;
+  coords: LatLng | null;
   repeat: Repeat;
   everyN: string;
   until: string;
@@ -46,7 +51,8 @@ export function ActivityFormScreen() {
         end: timeIn(a.ends_at, tz),
         location: a.location ?? "",
         projectId: a.project_id ?? "",
-        description: a.description ?? ""
+        description: a.description ?? "",
+        coords: a.location_lat != null && a.location_lng != null ? { lat: a.location_lat, lng: a.location_lng } : null
       }
     : null;
   return <ActivityForm key={id ?? "nueva"} initial={initial} activityId={id} isSeries={Boolean(a?.series_id)} />;
@@ -80,6 +86,7 @@ function ActivityForm({
     location: "",
     projectId: params.get("proyecto") ?? "",
     description: "",
+    coords: null,
     ...(initial ?? {}),
     repeat: "no",
     everyN: "3",
@@ -87,6 +94,7 @@ function ActivityForm({
   }));
   const [errors, setErrors] = useState<Partial<Record<"title" | "time" | "until" | "server", string>>>({});
   const [saving, setSaving] = useState(false);
+  const [mapOpen, setMapOpen] = useState(Boolean(initial?.coords));
 
   // Si cambia la fecha de inicio y la de fin era la misma, la acompaña.
   const setDate = (date: string) =>
@@ -149,14 +157,16 @@ function ActivityForm({
           await supabase.rpc("update_activity", {
             p_id: activityId, p_title: f.title, p_type: f.type, p_starts_at: startsAt, p_ends_at: endsAt,
             p_description: f.description, p_location: f.location, p_project_id: f.projectId || null,
-            p_scope: isSeries && scopeFollowing ? "esta_y_siguientes" : "solo_esta"
+            p_scope: isSeries && scopeFollowing ? "esta_y_siguientes" : "solo_esta",
+            p_lat: f.coords?.lat ?? null, p_lng: f.coords?.lng ?? null
           })
         );
       } else {
         targetId = must<string>(
           await supabase.rpc("create_activity", {
             p_community_id: community.id, p_title: f.title, p_type: f.type, p_starts_at: startsAt, p_ends_at: endsAt,
-            p_description: f.description, p_location: f.location, p_project_id: f.projectId || null, p_recurrence: recurrence()
+            p_description: f.description, p_location: f.location, p_project_id: f.projectId || null, p_recurrence: recurrence(),
+            p_lat: f.coords?.lat ?? null, p_lng: f.coords?.lng ?? null
           })
         );
       }
@@ -213,7 +223,23 @@ function ActivityForm({
       </div>
       {errors.time ? <span className="-mt-2 text-[13px] font-bold text-accent">{errors.time}</span> : null}
 
-      <Field id="f_place" label="Lugar" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="Sede del grupo scout" />
+      <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3.5">
+        <Field id="f_place" label="Lugar" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} placeholder="Sede del grupo scout" />
+        {mapOpen ? (
+          <Suspense fallback={<div className="flex h-60 items-center justify-center gap-2 text-muted"><Spinner /> Cargando mapa…</div>}>
+            <LocationPicker
+              value={f.coords}
+              initialQuery={f.location}
+              onChange={(coords) => setF((prev) => ({ ...prev, coords }))}
+              onPlaceName={(name) => setF((prev) => ({ ...prev, location: prev.location.trim() ? prev.location : name }))}
+            />
+          </Suspense>
+        ) : (
+          <button type="button" onClick={() => setMapOpen(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-dashed border-line px-4 font-bold text-accent">
+            Marcar en el mapa
+          </button>
+        )}
+      </div>
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="f_proj" className="text-sm font-bold">Proyecto (opcional)</label>
