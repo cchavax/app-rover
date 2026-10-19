@@ -1,0 +1,4 @@
+# Configuración para el CLI de Supabase (supabase functions deploy).
+# Si desplegás desde el panel web, desactivá "Enforce JWT verification" en la función.
+[functions.push]
+verify_jwt = false

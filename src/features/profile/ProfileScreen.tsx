@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, Button, Card, ConfirmButton, ErrorBox, Field, SectionTitle, useToast } from "../../components/ui.tsx";
-import { isStandalone, needsIOSInstall } from "../../lib/pwa.ts";
+import { NotificationsCard } from "./NotificationsCard.tsx";
 import { keys, useRpc } from "../../lib/queries.ts";
 import { errorMessage, must, supabase } from "../../lib/supabase.ts";
 import { ROLE_LABEL, displayName, type Community, type MemberRole, type Profile } from "../../lib/types.ts";
@@ -68,14 +68,7 @@ export function ProfileScreen({ profile, community, myRole }: { profile: Profile
         </Button>
       </form>
 
-      {!isStandalone() ? (
-        <Card className="p-4 text-[14.5px]">
-          <strong>Instalá Fogón en tu celular.</strong>{" "}
-          {needsIOSInstall()
-            ? "En Safari tocá Compartir y después “Agregar a inicio”. En iPhone es la única forma de recibir notificaciones."
-            : "Abrí el menú del navegador (⋮) y elegí “Instalar app”."}
-        </Card>
-      ) : null}
+      <NotificationsCard uid={profile.id} isCoord={myRole === "coordinador"} />
 
       {myRole !== "educador" || profile.is_superadmin ? (
         <>

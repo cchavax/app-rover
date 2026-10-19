@@ -18,6 +18,8 @@ import { PrivacyScreen } from "./features/auth/PrivacyScreen.tsx";
 import { CommunityScreen } from "./features/community/CommunityScreen.tsx";
 import { OnboardingScreen } from "./features/onboarding/OnboardingScreen.tsx";
 import { ProfileScreen } from "./features/profile/ProfileScreen.tsx";
+import { useEffect } from "react";
+import { refreshPushSubscription } from "./lib/push.ts";
 import { useCommunity, useMyMemberships, useProfile } from "./lib/queries.ts";
 import { errorMessage, supabaseConfigured } from "./lib/supabase.ts";
 import { displayName, type Community, type MemberRole, type Profile } from "./lib/types.ts";
@@ -42,6 +44,10 @@ function Gate() {
 }
 
 function SignedIn({ uid }: { uid: string }) {
+  // Si este dispositivo ya tenía notificaciones, re-guardamos la suscripción (el navegador puede renovarla).
+  useEffect(() => {
+    void refreshPushSubscription().catch(() => {});
+  }, [uid]);
   const profile = useProfile(uid);
   const memberships = useMyMemberships(uid);
 

@@ -1,3 +1,5 @@
+// Fogón · Edge Function "push": envía notificaciones Web Push.
+// Archivo único a propósito: se puede pegar tal cual en el editor de Supabase.
 // Web Push sin librerías: solo WebCrypto, así corre igual en Deno (Supabase) y en Node (tests).
 //   * Cifrado del mensaje: RFC 8291 (aes128gcm).
 //   * Autenticación del servidor: VAPID, RFC 8292 (JWT ES256).
@@ -104,4 +106,113 @@ export async function sendPush(sub: Subscription, message: unknown, vapid: Vapid
   });
   await res.body?.cancel();
   return res.status;
+}
+
+// =====================================================================
+// Edge Function "push" (Supabase). Acciones:
+//   * {"action":"public-key"} → clave pública VAPID (la crea la primera vez).
+//   * {"action":"process"}    → envía lo pendiente de la cola. Lo llama pg_cron
+//                               (con x-fogon-secret) o la app de un usuario logueado.
+// =====================================================================
+
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS"
+};
+const json = (data: unknown, status = 200) =>
+  new Response(JSON.stringify(data), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+
+type Config = { public_key: string | null; private_jwk: JsonWebKey | null; subject: string | null; secret: string | null };
+type Claimed = { queue_id: number; title: string; body: string; url: string; tag: string; subs: Subscription[] };
+// deno-lint-ignore no-explicit-any
+type Admin = any;
+
+export async function loadConfig(admin: Admin): Promise<Config> {
+  const read = async () => {
+    const { data, error } = await admin.rpc("push_config");
+    if (error) throw error;
+    return data as Config;
+  };
+  let cfg = await read();
+  if (!cfg.public_key || !cfg.private_jwk) {
+    const keys = await generateVapidKeys();
+    const { error } = await admin.rpc("push_save_keys", { p_public_key: keys.publicKey, p_private_jwk: keys.privateKeyJwk });
+    if (error) throw error;
+    cfg = await read(); // si dos llamadas compitieron, nos quedamos con la que se guardó
+  }
+  return cfg;
+}
+
+export async function processQueue(admin: Admin, cfg: Config) {
+  const vapid: Vapid = {
+    subject: cfg.subject ?? "mailto:avisos@fogon.app",
+    publicKey: cfg.public_key ?? "",
+    privateKeyJwk: cfg.private_jwk ?? {}
+  };
+  let sent = 0, failed = 0, removed = 0;
+  for (let round = 0; round < 5; round++) {
+    const { data, error } = await admin.rpc("push_claim_batch", { p_limit: 200 });
+    if (error) throw error;
+    const batch = (data ?? []) as Claimed[];
+    if (!batch.length) break;
+
+    const dead = new Set<string>();
+    const jobs = batch.flatMap((m) =>
+      m.subs.map((s) => async () => {
+        try {
+          const status = await sendPush(s, { title: m.title, body: m.body, url: m.url, tag: m.tag }, vapid);
+          if (status === 404 || status === 410) dead.add(s.endpoint);
+          else if (status >= 200 && status < 300) sent++;
+          else failed++;
+        } catch {
+          failed++;
+        }
+      })
+    );
+    // De a 20 envíos en paralelo.
+    for (let i = 0; i < jobs.length; i += 20) await Promise.all(jobs.slice(i, i + 20).map((j) => j()));
+
+    removed += dead.size;
+    const { error: finishError } = await admin.rpc("push_finish", {
+      p_sent: batch.map((m) => m.queue_id),
+      p_dead_endpoints: [...dead]
+    });
+    if (finishError) throw finishError;
+  }
+  return { sent, failed, removed };
+}
+
+// deno-lint-ignore no-explicit-any
+const DenoGlobal = (globalThis as any).Deno;
+if (DenoGlobal) {
+  DenoGlobal.serve(async (req: Request) => {
+    if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+    try {
+      const { createClient } = await import("npm:@supabase/supabase-js@2");
+      const admin = createClient(DenoGlobal.env.get("SUPABASE_URL"), DenoGlobal.env.get("SUPABASE_SERVICE_ROLE_KEY"), {
+        auth: { persistSession: false, autoRefreshToken: false }
+      });
+      const { action } = await req.json().catch(() => ({ action: null }));
+      const cfg = await loadConfig(admin);
+
+      if (action === "public-key") return json({ publicKey: cfg.public_key });
+
+      if (action === "process") {
+        const fromCron = Boolean(cfg.secret) && req.headers.get("x-fogon-secret") === cfg.secret;
+        let fromUser = false;
+        if (!fromCron) {
+          const jwt = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+          if (jwt) fromUser = Boolean((await admin.auth.getUser(jwt)).data?.user);
+        }
+        if (!fromCron && !fromUser) return json({ error: "No autorizado." }, 401);
+        return json(await processQueue(admin, cfg));
+      }
+
+      return json({ error: "Acción desconocida." }, 400);
+    } catch (e) {
+      console.error(e);
+      return json({ error: e instanceof Error ? e.message : String(e) }, 500);
+    }
+  });
 }
