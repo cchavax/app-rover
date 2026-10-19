@@ -27,18 +27,24 @@ export function useMyMemberships(uid: string) {
   });
 }
 
+const COMMUNITY_BASE = "id, name, scout_group, city, timezone, status, created_by, created_at";
+const COMMUNITY_EXTRA = "home_name, home_lat, home_lng";
+
 export function useCommunity(cid: string | undefined) {
   return useQuery({
     queryKey: keys.community(cid ?? ""),
     enabled: Boolean(cid),
-    queryFn: async () =>
-      must<Community>(
-        await supabase
-          .from("communities")
-          .select("id, name, scout_group, city, timezone, status, created_by, created_at, home_name, home_lat, home_lng")
-          .eq("id", cid ?? "")
-          .single()
-      )
+    queryFn: async () => {
+      const full = await supabase.from("communities").select(`${COMMUNITY_BASE}, ${COMMUNITY_EXTRA}`).eq("id", cid ?? "").single();
+      // Si la app se publicó antes de correr una migración nueva, seguimos sin esas columnas en vez de rompernos.
+      if (full.error && /does not exist/i.test(String((full.error as { message?: string }).message))) {
+        const base = must<Omit<Community, "home_name" | "home_lat" | "home_lng">>(
+          await supabase.from("communities").select(COMMUNITY_BASE).eq("id", cid ?? "").single()
+        );
+        return { ...base, home_name: null, home_lat: null, home_lng: null } as Community;
+      }
+      return must<Community>(full);
+    }
   });
 }
 
