@@ -1,6 +1,6 @@
-# App Rover
+# Fogón
 
-App web (PWA) para organizar una Comunidad Rover de Scouts de Argentina: actividades, proyectos, asistencia y notificaciones. Pensada primero para el celular y para varias comunidades.
+Fogón (nombre provisorio) es una app web (PWA) para organizar una Comunidad Rover de Scouts de Argentina: actividades, proyectos, asistencia y notificaciones. Pensada primero para el celular y para varias comunidades.
 
 - Qué se construye y por qué: [`docs/PROMPT.md`](docs/PROMPT.md)
 - Diseño técnico (modelo de datos, permisos, orden de trabajo): [`docs/PLAN.md`](docs/PLAN.md)

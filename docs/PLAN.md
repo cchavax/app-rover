@@ -1,6 +1,6 @@
 # Plan técnico — App Comunidad Rover (MVP)
 
-Estado: **borrador para aprobar**. Nada de esto está implementado todavía.
+Estado: **aprobado** (19/10/2026). Nombre provisorio de la app: **Fogón**.
 
 ## 1. Arquitectura
 
@@ -33,6 +33,7 @@ Convenciones: `uuid` como PK, `timestamptz` para fechas con hora, `created_at`/`
 | `project_status` | idea, en_curso, finalizado, cancelado |
 | `rsvp_response` | voy, talvez, no |
 | `idea_status` | propuesta, planificada, en_desarrollo, lanzada, descartada |
+| `recurrence_frequency` | semanal, mensual_dia, mensual_semana |
 | `notification_kind` | nueva_actividad, confirmar, recordatorio_dia_antes, cambio, cancelacion, solicitud_ingreso |
 
 ### Tablas
@@ -45,7 +46,7 @@ Convenciones: `uuid` como PK, `timestamptz` para fechas con hora, `created_at`/`
 **Calendario**
 - `projects` — `id`, `community_id`, `name`, `goal`, `description`, `start_date`, `end_date`, `status`, `color_index`, `created_by`, `deleted_at`, `deleted_by` · check `end_date >= start_date`
 - `project_owners` — (`project_id`, `user_id`) PK
-- `activity_series` — `id`, `community_id`, `interval_days` (7 o 14), `until_date`, `created_by`
+- `activity_series` — `id`, `community_id`, `frequency` (`recurrence_frequency`), `interval` (cada cuántas unidades), `month_day` / `month_week` + `weekday` (para mensuales), `until_date`, `created_by`
 - `activities` — `id`, `community_id`, `series_id?`, `project_id?`, `title`, `description`, `type`, `starts_at`, `ends_at`, `location`, `status`, `created_by`, `deleted_at`, `deleted_by` · check `ends_at > starts_at`
 
 **Asistencia**
@@ -64,6 +65,7 @@ Convenciones: `uuid` como PK, `timestamptz` para fechas con hora, `created_at`/`
 - `user_active_days` — (`user_id`, `community_id`, `day`) PK · se registra una fila por día de uso → usuarios activos por semana sin herramientas externas
 
 ### Decisiones de modelado
+- **Formas de repetir:** cada semana, cada 2 semanas (semanal con `interval = 2`), cada N semanas, todos los meses el día X (ej. el 15) y todos los meses el N-ésimo día de la semana (ej. el primer sábado, el último domingo). Si un mes no tiene día 31, esa ocurrencia se saltea.
 - **Recurrentes materializadas:** cada reunión de una serie es una fila real en `activities` (hasta `until_date`, máximo 1 año). Así cada una tiene su propia asistencia, y "editar solo esta" es un update común. "Esta y las siguientes" = update por `series_id` y `starts_at >= X`.
 - **Rol por comunidad** en `memberships`; `is_superadmin` es global en `profiles`.
 - **Nunca borrar personas de verdad:** al salir de la comunidad, `memberships.status = baja`. Al borrar la cuenta se anonimiza el perfil (nombre → "Ex miembro", se borra el teléfono y la foto) y se conservan actividades y asistencias.
@@ -153,8 +155,8 @@ api/              funciones de Vercel (vista previa WhatsApp)
 | 5 | Compartir por WhatsApp + lectura offline | Mandar un link al grupo; modo avión |
 | 6 | Ideas, sugerencias y métricas | Votar; ver el panel |
 
-## 8. A definir con vos
-1. **Vista previa de WhatsApp:** muestra título, fecha y lugar a cualquiera que tenga el link, aunque no esté logueado. ¿Está bien, o preferís que diga solo "Actividad de [comunidad]"?
-2. **Recurrentes:** ¿alcanza con semanal y quincenal, o hace falta "el primer sábado de cada mes"?
-3. **Dominio:** ¿arrancamos con el de Vercel (`algo.vercel.app`) o vas a comprar uno? Se puede cambiar después.
-4. **Nombre de la app:** hace falta para el ícono y el instalador.
+## 8. Decisiones tomadas
+1. **Vista previa de WhatsApp:** muestra título, fecha y lugar a quien tenga el link.
+2. **Recurrentes:** semanal, quincenal, cada N semanas, mensual por día del mes y mensual por N-ésimo día de la semana.
+3. **Dominio:** el gratuito de Vercel por ahora.
+4. **Nombre:** Fogón (provisorio).

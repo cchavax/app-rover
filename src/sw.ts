@@ -13,7 +13,7 @@ precacheAndRoute(self.__WB_MANIFEST);
 type PushPayload = { title: string; body: string; url?: string; tag?: string };
 
 self.addEventListener("push", (event) => {
-  let data: PushPayload = { title: "App Rover", body: "Tenés una novedad en tu comunidad." };
+  let data: PushPayload = { title: "Fogón", body: "Tenés una novedad en tu comunidad." };
   try {
     if (event.data) data = { ...data, ...(event.data.json() as Partial<PushPayload>) };
   } catch {

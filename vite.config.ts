@@ -16,8 +16,8 @@ export default defineConfig({
       injectRegister: "auto",
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       manifest: {
-        name: "App Rover",
-        short_name: "Rover",
+        name: "Fogón",
+        short_name: "Fogón",
         description: "Actividades, proyectos y asistencia de tu Comunidad Rover.",
         lang: "es-AR",
         start_url: "/",

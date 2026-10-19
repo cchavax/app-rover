@@ -7,7 +7,7 @@ export default function App() {
   return (
     <main className="mx-auto flex min-h-full max-w-xl flex-col gap-5 px-4 py-10">
       <p className="text-xs font-bold uppercase tracking-widest text-accent">Paso 0 · en construcción</p>
-      <h1 className="font-display text-4xl font-extrabold leading-tight">App Rover</h1>
+      <h1 className="font-display text-4xl font-extrabold leading-tight">Fogón</h1>
       <p className="text-muted">
         Actividades, proyectos y asistencia de tu Comunidad Rover. Si ves esta pantalla, el deploy funciona.
       </p>
