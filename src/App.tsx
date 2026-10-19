@@ -56,6 +56,8 @@ function SignedIn({ uid }: { uid: string }) {
   }
 
   if (community.data.status !== "activa") {
+    // El superadmin igual necesita llegar a su panel para aprobar (incluida su propia comunidad).
+    if (profile.data.is_superadmin) return <Shell profile={profile.data} community={null} role={null} />;
     return (
       <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-10">
         <h1 className="font-display text-3xl font-extrabold">{community.data.name}</h1>

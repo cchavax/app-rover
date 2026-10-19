@@ -7,7 +7,11 @@ import { displayName } from "../../lib/types.ts";
 export function AdminScreen() {
   const toast = useToast();
   const pending = usePendingCommunities(true);
-  const review = useRpc<{ p_community_id: string; p_approve: boolean }>("review_community", [keys.pendingCommunities]);
+  const review = useRpc<{ p_community_id: string; p_approve: boolean }>("review_community", [
+    keys.pendingCommunities,
+    ["community"], // refresca la comunidad propia si el superadmin aprobó la suya
+    ["my-memberships"]
+  ]);
 
   if (pending.isLoading) return <Loading />;
   if (pending.error) return <ErrorBox message={errorMessage(pending.error)} onRetry={() => void pending.refetch()} />;
