@@ -79,7 +79,7 @@ export function Field({
   ...rest
 }: InputHTMLAttributes<HTMLInputElement> & { id: string; label: string; error?: string | null; hint?: string }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex min-w-0 flex-col gap-1.5">
       <label htmlFor={id} className="text-sm font-bold">
         {label}
       </label>

@@ -11,20 +11,20 @@ type Props = {
   onChange: (v: LatLng | null) => void;
   /** Se llama al elegir un resultado de la búsqueda, para completar el nombre del lugar. */
   onPlaceName: (name: string) => void;
-  initialQuery?: string;
+  /** Texto del campo "Lugar": es lo que se busca (no hay un segundo buscador). */
+  query: string;
 };
 
 const pinIcon = () =>
   L.divIcon({ className: "fogon-pin", html: "<span></span>", iconSize: [30, 30], iconAnchor: [15, 30] });
 
-export default function LocationPicker({ value, onChange, onPlaceName, initialQuery = "" }: Props) {
+export default function LocationPicker({ value, onChange, onPlaceName, query }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const marker = useRef<L.Marker | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
-  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState<Place[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +78,7 @@ export default function LocationPicker({ value, onChange, onPlaceName, initialQu
 
   async function search(e: FormEvent) {
     e.preventDefault();
-    if (query.trim().length < 3) return setError("Escribí al menos 3 letras.");
+    if (query.trim().length < 3) return setError("Escribí el nombre del lugar arriba (al menos 3 letras).");
     setSearching(true);
     setError(null);
     try {
@@ -103,24 +103,15 @@ export default function LocationPicker({ value, onChange, onPlaceName, initialQu
 
   return (
     <div className="flex flex-col gap-2">
-      {/* No es un <form> porque ya estamos dentro del formulario de la actividad. */}
-      <div className="flex gap-2">
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") void search(e);
-          }}
-          placeholder="Buscar lugar (ej.: Reserva San Martín)"
-          aria-label="Buscar lugar"
-          className="min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 py-2.5 text-base"
-        />
-        <button type="button" onClick={(e) => void search(e)} disabled={searching} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface px-3.5 font-bold">
-          {searching ? <Spinner /> : null}
-          Buscar
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={(e) => void search(e)}
+        disabled={searching || query.trim().length < 3}
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-bg px-3.5 font-bold disabled:opacity-50"
+      >
+        {searching ? <Spinner /> : null}
+        {query.trim().length >= 3 ? `Buscar “${query.trim().length > 28 ? query.trim().slice(0, 27) + "…" : query.trim()}” en el mapa` : "Escribí el lugar arriba para buscarlo"}
+      </button>
 
       {results && results.length ? (
         <div className="overflow-hidden rounded-xl border border-line bg-surface">

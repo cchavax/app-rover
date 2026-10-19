@@ -102,3 +102,7 @@ body {
   box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
 }
 .leaflet-container { font: inherit; background: var(--color-line); }
+
+/* iOS: los campos de fecha y hora tienen un ancho mínimo propio que desborda las grillas. */
+input[type="date"], input[type="time"] { -webkit-appearance: none; appearance: none; min-width: 0; min-height: 46px; }
+input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value { text-align: left; }

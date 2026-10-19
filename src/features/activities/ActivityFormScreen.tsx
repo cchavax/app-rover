@@ -229,7 +229,7 @@ function ActivityForm({
           <Suspense fallback={<div className="flex h-60 items-center justify-center gap-2 text-muted"><Spinner /> Cargando mapa…</div>}>
             <LocationPicker
               value={f.coords}
-              initialQuery={f.location}
+              query={f.location}
               onChange={(coords) => setF((prev) => ({ ...prev, coords }))}
               onPlaceName={(name) => setF((prev) => ({ ...prev, location: prev.location.trim() ? prev.location : name }))}
             />
