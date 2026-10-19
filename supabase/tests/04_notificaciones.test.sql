@@ -54,7 +54,7 @@ select test.ok(pg_temp.q('nueva', '00000000-0000-0000-0000-000000000005') = 0, '
 select public.create_activity('a0000000-0000-0000-0000-00000000000a', 'Reunión semanal', 'reunion',
   '2027-03-13 15:00-03', '2027-03-13 18:00-03', null, null, null, '{"frequency":"semanal","until":"2027-05-29"}');
 select test.ok(pg_temp.q('nueva') = 4, 'una serie de 12 fechas avisa una sola vez por persona');
-select test.ok(pg_temp.last('nueva', 'body') like 'sáb 13/03 15:00%(se repite)%',
+select test.ok(pg_temp.last('nueva', 'body') = 'Reunión nueva, todos los sábados desde el 13 de marzo a las 15:00. ¿Vas?',
   'el aviso dice el día y la hora en la zona de la comunidad');
 
 -- ===== Cambios y cancelaciones =====
