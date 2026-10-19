@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App.tsx";
+import { ActivityBar } from "./components/Loader.tsx";
 import { ToastProvider } from "./components/ui.tsx";
 import { AuthProvider } from "./features/auth/AuthProvider.tsx";
 import { rememberInviteCodeFromUrl } from "./lib/invite.ts";
@@ -22,6 +23,7 @@ createRoot(root).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ToastProvider>
+          <ActivityBar />
           <App />
         </ToastProvider>
       </AuthProvider>

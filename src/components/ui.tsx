@@ -1,3 +1,5 @@
+import { Spinner } from "./Loader.tsx";
+export { Loading } from "./Loader.tsx";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
 
 type Variant = "primary" | "secondary" | "danger" | "ghost";
@@ -20,7 +22,14 @@ export function Button({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; loading?: boolean }) {
   return (
     <button className={`${base} ${variants[variant]} ${className}`} disabled={loading || rest.disabled} {...rest}>
-      {loading ? "Un momento…" : children}
+      {loading ? (
+        <>
+          <Spinner />
+          <span>Un momento…</span>
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }
@@ -82,14 +91,6 @@ export function Field({
       />
       {hint && !error ? <span className="text-[13px] text-muted">{hint}</span> : null}
       {error ? <span className="text-[13px] font-bold text-accent">{error}</span> : null}
-    </div>
-  );
-}
-
-export function Loading({ label = "Cargando…" }: { label?: string }) {
-  return (
-    <div className="flex min-h-[40vh] items-center justify-center text-muted" role="status">
-      {label}
     </div>
   );
 }
