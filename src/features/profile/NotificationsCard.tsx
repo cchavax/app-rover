@@ -4,10 +4,10 @@ import { Button, Card, ErrorBox, SectionTitle, useToast } from "../../components
 import { disablePush, enablePush, fetchPublicKey, pushState, sendTestPush, type PushState } from "../../lib/push.ts";
 import { errorMessage, must, supabase } from "../../lib/supabase.ts";
 
-type Prefs = { nueva: boolean; confirmar: boolean; manana: boolean; cambios: boolean; solicitudes: boolean };
-const DEFAULTS: Prefs = { nueva: true, confirmar: true, manana: true, cambios: true, solicitudes: true };
+type Prefs = { nueva: boolean; confirmar: boolean; manana: boolean; cambios: boolean; solicitudes: boolean; respuestas: boolean };
+const DEFAULTS: Prefs = { nueva: true, confirmar: true, manana: true, cambios: true, solicitudes: true, respuestas: true };
 
-export function NotificationsCard({ uid, isCoord }: { uid: string; isCoord: boolean }) {
+export function NotificationsCard({ uid, isCoord, canCreate }: { uid: string; isCoord: boolean; canCreate: boolean }) {
   const toast = useToast();
   const qc = useQueryClient();
   const [state, setState] = useState<PushState | null>(null);
@@ -24,7 +24,7 @@ export function NotificationsCard({ uid, isCoord }: { uid: string; isCoord: bool
   const prefs = useQuery({
     queryKey: ["notification-prefs", uid],
     queryFn: async () => {
-      const rows = must<Prefs[]>(await supabase.from("notification_prefs").select("nueva, confirmar, manana, cambios, solicitudes").eq("user_id", uid));
+      const rows = must<Prefs[]>(await supabase.from("notification_prefs").select("nueva, confirmar, manana, cambios, solicitudes, respuestas").eq("user_id", uid));
       return rows[0] ?? DEFAULTS;
     }
   });
@@ -56,7 +56,8 @@ export function NotificationsCard({ uid, isCoord }: { uid: string; isCoord: bool
     ["nueva", "Actividades nuevas"],
     ["confirmar", "Recordarme confirmar (2 días antes)"],
     ["manana", "Recordatorio el día anterior si voy"],
-    ["cambios", "Cambios y cancelaciones de lo que voy"],
+    ["cambios", "Cambios y suspensiones de lo que voy"],
+    ...(canCreate ? ([["respuestas", "Quién se suma o se baja de lo que organizo"]] as [keyof Prefs, string][]) : []),
     ...(isCoord ? ([["solicitudes", "Pedidos para unirse a la comunidad"]] as [keyof Prefs, string][]) : [])
   ];
 

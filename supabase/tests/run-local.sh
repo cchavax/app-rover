@@ -9,7 +9,8 @@ psql -q -v ON_ERROR_STOP=1 -d postgres -c "drop database if exists $DB" -c "crea
 psql -q -v ON_ERROR_STOP=1 -d "$DB" -f tests/_shim_supabase_local.sql >/dev/null
 for f in migrations/*.sql; do
   echo "→ migración $(basename "$f")"
-  psql -q -v ON_ERROR_STOP=1 -d "$DB" -f "$f" >/dev/null
+  # -1: cada migración en una sola transacción, como el SQL Editor de Supabase.
+  psql -q -1 -v ON_ERROR_STOP=1 -d "$DB" -f "$f" >/dev/null
 done
 for f in tests/[0-9]*.test.sql; do
   echo "→ tests $(basename "$f")"

@@ -68,7 +68,7 @@ export function ProfileScreen({ profile, community, myRole }: { profile: Profile
         </Button>
       </form>
 
-      <NotificationsCard uid={profile.id} isCoord={myRole === "coordinador"} />
+      <NotificationsCard uid={profile.id} isCoord={myRole === "coordinador"} canCreate={myRole !== "educador"} />
 
       {myRole !== "educador" || profile.is_superadmin ? (
         <>
