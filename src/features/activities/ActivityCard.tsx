@@ -2,8 +2,16 @@ import { Link } from "react-router";
 import { useApp } from "../../app/context.tsx";
 import { dayKey, shortDay, timeIn } from "../../lib/dates.ts";
 import { TYPES, type Activity, type Project } from "../../lib/activities.ts";
+import { RSVP_LABEL, type Rsvp } from "../../lib/attendance.ts";
 
-export function ActivityCard({ a, project }: { a: Activity; project?: Project | undefined }) {
+const PILL: Record<Rsvp, string> = {
+  voy: "bg-[var(--ok-soft)] text-[var(--ok)]",
+  talvez: "bg-[var(--warn-soft)] text-[var(--warn)]",
+  no: "bg-line/70 text-muted"
+};
+
+/** Tarjeta de actividad. Con `showRsvp`, muestra mi respuesta o "Responder". */
+export function ActivityCard({ a, project, rsvp, showRsvp = false }: { a: Activity; project?: Project | undefined; rsvp?: Rsvp | undefined; showRsvp?: boolean }) {
   const { tz } = useApp();
   const t = TYPES[a.type];
   const multiDay = dayKey(a.starts_at, tz) !== dayKey(a.ends_at, tz);
@@ -25,8 +33,22 @@ export function ActivityCard({ a, project }: { a: Activity; project?: Project | 
         </div>
         {project ? <span className="mt-1 inline-block rounded-md bg-line/60 px-2 py-0.5 text-[12.5px]">{project.name}</span> : null}
       </div>
-      {cancelled ? <span className="rounded-full bg-line/70 px-2.5 py-1 text-xs font-bold text-muted">Cancelada</span> : <span />}
+      <StatusPill cancelled={cancelled} started={Date.parse(a.starts_at) <= Date.now()} rsvp={rsvp} showRsvp={showRsvp} />
     </Link>
+  );
+}
+
+function StatusPill({ cancelled, started, rsvp, showRsvp }: { cancelled: boolean; started: boolean; rsvp: Rsvp | undefined; showRsvp: boolean }) {
+  const base = "whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold";
+  if (cancelled) return <span className={`${base} bg-line/70 text-muted`}>Cancelada</span>;
+  if (!showRsvp) return <span />;
+  if (rsvp) return <span className={`${base} ${PILL[rsvp]}`}>{RSVP_LABEL[rsvp]}</span>;
+  if (started) return <span className={`${base} bg-line/70 text-muted`}>En curso</span>;
+  return (
+    <span className={`${base} inline-flex items-center gap-1.5 bg-accent-soft text-accent`}>
+      <i className="h-1.5 w-1.5 rounded-full bg-accent" />
+      Responder
+    </span>
   );
 }
 

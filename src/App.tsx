@@ -3,6 +3,8 @@ import { AppProvider } from "./app/context.tsx";
 import { ErrorBox, Loading } from "./components/ui.tsx";
 import { ActivityDetailScreen } from "./features/activities/ActivityDetailScreen.tsx";
 import { ActivityFormScreen } from "./features/activities/ActivityFormScreen.tsx";
+import { TakeListScreen } from "./features/attendance/TakeListScreen.tsx";
+import { PendingBadge } from "./features/attendance/PendingBadge.tsx";
 import { CalendarScreen } from "./features/activities/CalendarScreen.tsx";
 import { UpcomingScreen } from "./features/activities/UpcomingScreen.tsx";
 import { ProjectDetailScreen } from "./features/projects/ProjectDetailScreen.tsx";
@@ -114,6 +116,7 @@ function Shell({ profile, community, role }: { profile: Profile; community: Comm
               <Route path="/actividades/nueva" element={<ActivityFormScreen />} />
               <Route path="/actividades/:id" element={<ActivityDetailScreen />} />
               <Route path="/actividades/:id/editar" element={<ActivityFormScreen />} />
+              <Route path="/actividades/:id/lista" element={<TakeListScreen />} />
               <Route path="/proyectos" element={<ProjectsScreen />} />
               <Route path="/proyectos/nuevo" element={<ProjectFormScreen />} />
               <Route path="/proyectos/:id" element={<ProjectDetailScreen />} />
@@ -136,12 +139,13 @@ function Shell({ profile, community, role }: { profile: Profile; community: Comm
                 key={t.to}
                 to={t.to}
                 end={t.to === "/"}
-                className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2 text-[11.5px] ${isActive ? "font-bold text-accent" : "text-muted"}`}
+                className={({ isActive }) => `relative flex flex-col items-center gap-0.5 py-2 text-[11.5px] ${isActive ? "font-bold text-accent" : "text-muted"}`}
               >
                 <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d={t.icon} />
                 </svg>
                 {t.label}
+                {t.to === "/" ? <PendingBadge /> : null}
               </NavLink>
             ))}
           </div>

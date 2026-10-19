@@ -46,3 +46,9 @@ body {
     --p0: #f28a52; --p1: #6aa6e8; --p2: #6cc27b; --p3: #c195e3; --p4: #e7b45a; --p5: #4fc3d9;
   }
 }
+
+/* Estados de asistencia */
+:root { --ok: #23704a; --ok-soft: #d9efe2; --warn: #975a00; --warn-soft: #f6e6c8; }
+@media (prefers-color-scheme: dark) {
+  :root { --ok: #62c78f; --ok-soft: #173326; --warn: #e7a948; --warn-soft: #3a2c14; }
+}

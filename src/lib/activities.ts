@@ -20,6 +20,7 @@ export interface Activity {
   status: "programada" | "cancelada";
   created_by: string;
   deleted_at: string | null;
+  attendance_taken_at: string | null;
 }
 
 export interface Project {
@@ -85,7 +86,7 @@ export const activityKeys = {
   trash: (cid: string) => ["trash", cid] as const
 };
 
-const ACT_COLS = "id, community_id, series_id, project_id, title, description, type, starts_at, ends_at, location, status, created_by, deleted_at";
+const ACT_COLS = "id, community_id, series_id, project_id, title, description, type, starts_at, ends_at, location, status, created_by, deleted_at, attendance_taken_at";
 
 /** Actividades no borradas que se solapan con [from, to). */
 export function useActivitiesInRange(cid: string, fromIso: string, toIso: string) {
@@ -163,4 +164,13 @@ export function useTrash(cid: string) {
       return { activities: must<Activity[]>(a), projects: must<Project[]>(p) };
     }
   });
+}
+
+/** Rango de "Próximas": desde el comienzo de la hora actual hasta 70 días después.
+ *  Redondeado para que distintas pantallas compartan la misma consulta en caché. */
+export function upcomingRange(): { from: string; to: string } {
+  const now = new Date();
+  now.setUTCMinutes(0, 0, 0);
+  const to = new Date(now.getTime() + 70 * 864e5);
+  return { from: now.toISOString(), to: to.toISOString() };
 }

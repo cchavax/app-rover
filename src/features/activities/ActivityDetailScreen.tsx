@@ -8,6 +8,7 @@ import { Button, Card, ConfirmButton, ErrorBox, Loading, useToast } from "../../
 import { TYPES, activityKeys, seriesText, useActivity, useProject, useSeries, type EditScope } from "../../lib/activities.ts";
 import { rangeText } from "../../lib/dates.ts";
 import { errorMessage, must, supabase } from "../../lib/supabase.ts";
+import { RsvpSection } from "../attendance/RsvpSection.tsx";
 import { BackLink } from "./ActivityCard.tsx";
 
 export function ActivityDetailScreen() {
@@ -96,7 +97,7 @@ export function ActivityDetailScreen() {
         <Fact icon="user" text={`Creada por ${mine ? "vos" : name(a.created_by)}`} muted />
       </Card>
 
-      <p className="rounded-xl bg-line/50 px-4 py-3 text-[14px] text-muted">La confirmación de asistencia llega en la próxima versión.</p>
+      <RsvpSection a={a} />
 
       <a href={wa} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#1f8f4e] px-4 font-bold text-white">
         Compartir por WhatsApp
