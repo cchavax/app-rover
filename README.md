@@ -9,8 +9,8 @@ Fogón (nombre provisorio) es una app web (PWA) para organizar una Comunidad Rov
 
 | Paso | Contenido | Estado |
 |---|---|---|
-| 0 | Proyecto base, PWA instalable, deploy | En curso |
-| 1 | Usuarios, comunidades, roles y permisos | Pendiente |
+| 0 | Proyecto base, PWA instalable, deploy | Listo |
+| 1 | Usuarios, comunidades, roles y permisos | En curso: base de datos lista, falta probar el login |
 | 2 | Actividades (recurrentes), proyectos, papelera | Pendiente |
 | 3 | Asistencia | Pendiente |
 | 4 | Notificaciones push | Pendiente |
@@ -52,3 +52,14 @@ La `service_role` key y la clave privada VAPID **nunca** van en este repo ni en 
 ## Licencia
 
 MIT
+
+## Base de datos
+
+Las migraciones están en `supabase/migrations/`. Mientras no esté configurado el CLI de Supabase, se aplican a mano: copiar el contenido de cada archivo, en orden, en **Supabase → SQL Editor → New query → Run**.
+
+Para nombrarte superadmin (una sola vez, después de entrar por primera vez con Google):
+
+```sql
+update public.profiles set is_superadmin = true
+where id = (select id from auth.users where email = 'TU_MAIL@gmail.com');
+```

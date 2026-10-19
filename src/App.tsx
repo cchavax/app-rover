@@ -1,31 +1,133 @@
-import { isStandalone, needsIOSInstall } from "./lib/pwa.ts";
+import { BrowserRouter, NavLink, Navigate, Route, Routes } from "react-router";
+import { ErrorBox, Loading } from "./components/ui.tsx";
+import { AdminScreen } from "./features/admin/AdminScreen.tsx";
+import { useAuth } from "./features/auth/AuthProvider.tsx";
+import { LoginScreen } from "./features/auth/LoginScreen.tsx";
+import { PrivacyScreen } from "./features/auth/PrivacyScreen.tsx";
+import { CommunityScreen } from "./features/community/CommunityScreen.tsx";
+import { HomeScreen } from "./features/home/HomeScreen.tsx";
+import { OnboardingScreen } from "./features/onboarding/OnboardingScreen.tsx";
+import { ProfileScreen } from "./features/profile/ProfileScreen.tsx";
+import { useCommunity, useMyMemberships, useProfile } from "./lib/queries.ts";
+import { errorMessage, supabaseConfigured } from "./lib/supabase.ts";
+import { displayName, type Community, type MemberRole, type Profile } from "./lib/types.ts";
 
 export default function App() {
-  const installed = isStandalone();
-  const iosHint = needsIOSInstall();
+  if (!supabaseConfigured) {
+    return (
+      <main className="mx-auto max-w-xl px-4 py-10">
+        <ErrorBox message="Falta configurar Supabase: cargá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en las variables de entorno y volvé a desplegar." />
+      </main>
+    );
+  }
+  return <Gate />;
+}
+
+/** Decide qué ve el usuario según en qué punto del ingreso está. */
+function Gate() {
+  const { session, loading } = useAuth();
+  if (loading) return <Loading />;
+  if (!session) return <LoginScreen />;
+  return <SignedIn uid={session.user.id} />;
+}
+
+function SignedIn({ uid }: { uid: string }) {
+  const profile = useProfile(uid);
+  const memberships = useMyMemberships(uid);
+
+  const active = memberships.data?.find((m) => m.status === "activo");
+  const community = useCommunity(active?.community_id);
+
+  if (profile.isLoading || memberships.isLoading || (active && community.isLoading)) return <Loading />;
+  const err = profile.error ?? memberships.error ?? community.error;
+  if (err || !profile.data || !memberships.data)
+    return (
+      <main className="mx-auto max-w-xl px-4 py-10">
+        <ErrorBox message={errorMessage(err)} onRetry={() => window.location.reload()} />
+      </main>
+    );
+
+  if (!profile.data.privacy_accepted_at) return <PrivacyScreen uid={uid} />;
+
+  if (!active || !community.data) {
+    // El superadmin puede no pertenecer a ninguna comunidad y aun así necesita su panel.
+    if (profile.data.is_superadmin) return <Shell profile={profile.data} community={null} role={null} />;
+    return <OnboardingScreen uid={uid} memberships={memberships.data} name={firstName(profile.data)} />;
+  }
+
+  if (community.data.status !== "activa") {
+    return (
+      <main className="mx-auto flex max-w-xl flex-col gap-4 px-4 py-10">
+        <h1 className="font-display text-3xl font-extrabold">{community.data.name}</h1>
+        <p className="text-muted">
+          {community.data.status === "pendiente"
+            ? "Tu comunidad está esperando aprobación. Cuando esté lista vas a poder invitar al resto. No hace falta que hagas nada más."
+            : "La solicitud de esta comunidad fue rechazada. Si creés que es un error, escribinos."}
+        </p>
+      </main>
+    );
+  }
+
+  return <Shell profile={profile.data} community={community.data} role={active.role} />;
+}
+
+const firstName = (p: Profile) => displayName(p).split(" ")[0] ?? "";
+
+function Shell({ profile, community, role }: { profile: Profile; community: Community | null; role: MemberRole | null }) {
+  const tabs = [
+    ...(community && role
+      ? [
+          { to: "/", label: "Inicio", icon: "M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" },
+          { to: "/comunidad", label: "Comunidad", icon: "M9 11.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.8 3 2.6 3.5 5.2" },
+          { to: "/perfil", label: "Perfil", icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c1.5-4 4.5-6 8-6s6.5 2 8 6" }
+        ]
+      : []),
+    ...(profile.is_superadmin ? [{ to: "/admin", label: "Admin", icon: "M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" }] : [])
+  ];
+  const home = community && role ? "/" : "/admin";
 
   return (
-    <main className="mx-auto flex min-h-full max-w-xl flex-col gap-5 px-4 py-10">
-      <p className="text-xs font-bold uppercase tracking-widest text-accent">Paso 0 · en construcción</p>
-      <h1 className="font-display text-4xl font-extrabold leading-tight">Fogón</h1>
-      <p className="text-muted">
-        Actividades, proyectos y asistencia de tu Comunidad Rover. Si ves esta pantalla, el deploy funciona.
-      </p>
+    <BrowserRouter>
+      <header className="sticky top-0 z-20 border-b border-line bg-surface" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <div className="mx-auto max-w-xl px-4 py-3">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted">{community?.name ?? "Fogón"}</p>
+          <h1 className="font-display text-2xl font-extrabold">Fogón</h1>
+        </div>
+      </header>
 
-      <section className="rounded-2xl border border-line bg-surface p-4">
-        <h2 className="font-bold">{installed ? "Instalada en este celular" : "Todavía no está instalada"}</h2>
-        {installed ? (
-          <p className="mt-1 text-sm text-muted">Bien. Así va a poder recibir notificaciones.</p>
-        ) : iosHint ? (
-          <p className="mt-1 text-sm text-muted">
-            En iPhone: tocá <strong>Compartir</strong> en Safari y después <strong>Agregar a inicio</strong>.
-          </p>
-        ) : (
-          <p className="mt-1 text-sm text-muted">
-            En Android: abrí el menú de Chrome (⋮) y elegí <strong>Instalar app</strong>.
-          </p>
-        )}
-      </section>
-    </main>
+      <main className="mx-auto max-w-xl px-4 pb-28 pt-4">
+        <Routes>
+          {community && role ? (
+            <>
+              <Route path="/" element={<HomeScreen community={community} firstName={firstName(profile)} />} />
+              <Route path="/comunidad" element={<CommunityScreen community={community} myRole={role} uid={profile.id} />} />
+              <Route path="/perfil" element={<ProfileScreen profile={profile} community={community} myRole={role} />} />
+            </>
+          ) : null}
+          {profile.is_superadmin ? <Route path="/admin" element={<AdminScreen />} /> : null}
+          <Route path="*" element={<Navigate to={home} replace />} />
+        </Routes>
+      </main>
+
+      {tabs.length > 1 ? (
+        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface" style={{ paddingBottom: "env(safe-area-inset-bottom)" }} aria-label="Secciones">
+          <div className="mx-auto grid max-w-xl" style={{ gridTemplateColumns: `repeat(${tabs.length}, 1fr)` }}>
+            {tabs.map((t) => (
+              <NavLink
+                key={t.to}
+                to={t.to}
+                end
+                className={({ isActive }) => `flex flex-col items-center gap-0.5 py-2 text-[11.5px] ${isActive ? "font-bold text-accent" : "text-muted"}`}
+              >
+                <svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d={t.icon} />
+                </svg>
+                {t.label}
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+      ) : null}
+    </BrowserRouter>
   );
 }
