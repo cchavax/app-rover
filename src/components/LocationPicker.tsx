@@ -1,6 +1,6 @@
 // Mapa para elegir la ubicación exacta: buscar por nombre, tocar el mapa o arrastrar el pin.
 // Se carga solo cuando se abre (Leaflet pesa), con React.lazy desde el formulario.
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Spinner } from "./Loader.tsx";
@@ -9,7 +9,7 @@ import { DEFAULT_CENTER, searchPlaces, type LatLng, type Place } from "../lib/ma
 type Props = {
   value: LatLng | null;
   onChange: (v: LatLng | null) => void;
-  /** Se llama al elegir un resultado de la búsqueda, para completar el nombre del lugar. */
+  /** Se llama al elegir una sugerencia: reemplaza el texto del lugar por el nombre elegido. */
   onPlaceName: (name: string) => void;
   /** Texto del campo "Lugar": es lo que se busca (no hay un segundo buscador). */
   query: string;
@@ -93,21 +93,46 @@ export default function LocationPicker({ value, onChange, onPlaceName, query }: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value?.lat, value?.lng]);
 
-  async function search(e: FormEvent) {
-    e.preventDefault();
-    if (query.trim().length < 3) return setError("Escribí el nombre del lugar arriba (al menos 3 letras).");
-    setSearching(true);
-    setError(null);
-    try {
-      const rows = await searchPlaces(query.trim(), value ?? DEFAULT_CENTER);
-      setResults(rows);
-      if (!rows.length) setError("No encontré ese lugar. Probá con otro nombre o tocá el mapa.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo buscar.");
-    } finally {
+  // Búsqueda automática mientras se escribe (con una pausa para no buscar en cada letra).
+  // No busca si el texto vino de elegir una sugerencia o la sede (el pin ya está puesto).
+  const lastPicked = useRef<string | null>(null);
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 3 || q === lastPicked.current) {
+      setResults(null);
       setSearching(false);
+      return;
     }
-  }
+    const ctrl = new AbortController();
+    setSearching(true);
+    const t = setTimeout(async () => {
+      // El texto pudo venir de la sede o de abrir una actividad ya ubicada: no sugerimos nada.
+      if (q === lastPicked.current) {
+        setSearching(false);
+        return;
+      }
+      try {
+        const rows = await searchPlaces(q, value ?? DEFAULT_CENTER, ctrl.signal);
+        setResults(rows);
+        setError(rows.length ? null : "No encontré ese lugar. Probá con otro nombre o tocá el mapa.");
+      } catch (err) {
+        if ((err as Error).name !== "AbortError") setError("No se pudo buscar ahora. Podés tocar el mapa para poner el pin.");
+      } finally {
+        if (!ctrl.signal.aborted) setSearching(false);
+      }
+    }, 450);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  // Si el pin se puso con la sede o desde afuera, no mostramos sugerencias para ese texto.
+  useEffect(() => {
+    if (value && query.trim()) lastPicked.current = query.trim();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value?.lat, value?.lng]);
 
   function hereAndNow() {
     if (!("geolocation" in navigator)) return setError("Este celular no comparte la ubicación.");
@@ -120,15 +145,11 @@ export default function LocationPicker({ value, onChange, onPlaceName, query }: 
 
   return (
     <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={(e) => void search(e)}
-        disabled={searching || query.trim().length < 3}
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-bg px-3.5 font-bold disabled:opacity-50"
-      >
-        {searching ? <Spinner /> : null}
-        {query.trim().length >= 3 ? `Buscar “${query.trim().length > 28 ? query.trim().slice(0, 27) + "…" : query.trim()}” en el mapa` : "Escribí el lugar arriba para buscarlo"}
-      </button>
+      {searching && !results ? (
+        <p className="flex items-center gap-2 text-[13px] text-muted">
+          <Spinner size={14} /> Buscando “{query.trim()}”…
+        </p>
+      ) : null}
 
       {results && results.length ? (
         <div className="overflow-hidden rounded-xl border border-line bg-surface">
@@ -137,6 +158,7 @@ export default function LocationPicker({ value, onChange, onPlaceName, query }: 
               type="button"
               key={`${r.lat},${r.lng},${i}`}
               onClick={() => {
+                lastPicked.current = r.name;
                 place({ lat: r.lat, lng: r.lng }, 16);
                 onPlaceName(r.name);
                 setResults(null);
@@ -154,7 +176,7 @@ export default function LocationPicker({ value, onChange, onPlaceName, query }: 
       <div ref={box} className="h-60 w-full overflow-hidden rounded-xl border border-line" />
       <div className="flex flex-wrap items-center gap-2">
         <p className="min-w-0 flex-1 text-[13px] text-muted">
-          {value ? "Arrastrá el pin o tocá el mapa para ajustarlo." : "Buscá el lugar o tocá el mapa para poner el pin."}
+          {value ? "Arrastrá el pin o tocá el mapa para ajustarlo." : "Escribí el lugar arriba y elegí una sugerencia, o tocá el mapa."}
         </p>
         <button type="button" onClick={hereAndNow} className="rounded-lg px-2 py-1 text-sm font-bold text-accent">
           Estoy acá

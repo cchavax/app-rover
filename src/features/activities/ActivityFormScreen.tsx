@@ -232,12 +232,29 @@ function ActivityForm({
       {errors.time ? <span className="-mt-2 text-[13px] font-bold text-accent">{errors.time}</span> : null}
 
       <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-3.5">
-        <Field
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor="f_place" className="text-sm font-bold">{f.virtual ? "Dónde (opcional)" : "Lugar"}</label>
+          {home && !f.virtual ? (
+            <button
+              type="button"
+              onClick={() => setF((prev) => ({ ...prev, location: home.name, coords: { lat: home.lat, lng: home.lng } }))}
+              className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-[13px] font-bold text-muted hover:text-accent"
+              title={`Usar la sede: ${home.name}`}
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />
+              </svg>
+              Sede
+            </button>
+          ) : null}
+        </div>
+        <input
           id="f_place"
-          label={f.virtual ? "Dónde (opcional)" : "Lugar"}
           value={f.location}
           onChange={(e) => setF({ ...f, location: e.target.value })}
-          placeholder={f.virtual ? "Meet, Zoom, grupo de WhatsApp…" : "Escribí el lugar y buscalo en el mapa"}
+          placeholder={f.virtual ? "Meet, Zoom, grupo de WhatsApp…" : "Empezá a escribir el lugar…"}
+          autoComplete="off"
+          className="-mt-1 w-full min-w-0 rounded-xl border border-line bg-surface px-3 py-2.5 text-base outline-none focus:border-accent"
         />
         <label className="flex items-center gap-2.5 text-[15px]">
           <input type="checkbox" checked={f.virtual} onChange={(e) => setF({ ...f, virtual: e.target.checked })} className="h-5 w-5 accent-accent" />
@@ -245,21 +262,12 @@ function ActivityForm({
         </label>
         {!f.virtual ? (
           <>
-            {home ? (
-              <button
-                type="button"
-                onClick={() => setF((prev) => ({ ...prev, location: home.name, coords: { lat: home.lat, lng: home.lng } }))}
-                className="inline-flex min-h-11 items-center justify-center rounded-xl bg-accent-soft px-4 font-bold text-accent"
-              >
-                Usar la sede: {home.name}
-              </button>
-            ) : null}
             <Suspense fallback={<div className="flex h-60 items-center justify-center gap-2 text-muted"><Spinner /> Cargando mapa…</div>}>
               <LocationPicker
                 value={f.coords}
                 query={f.location}
                 onChange={(coords) => setF((prev) => ({ ...prev, coords }))}
-                onPlaceName={(name) => setF((prev) => ({ ...prev, location: prev.location.trim() ? prev.location : name }))}
+                onPlaceName={(name) => setF((prev) => ({ ...prev, location: name }))}
               />
             </Suspense>
           </>

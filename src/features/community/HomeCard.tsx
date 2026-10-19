@@ -62,7 +62,7 @@ export function HomeCard({ community, isCoord }: { community: Community; isCoord
           <>
             <Field id="home_name" label="Nombre" value={name} onChange={(e) => setName(e.target.value)} placeholder="Sede del Grupo Scout 123" />
             <Suspense fallback={<div className="flex h-60 items-center justify-center gap-2 text-muted"><Spinner /> Cargando mapa…</div>}>
-              <LocationPicker value={coords} query={name} onChange={setCoords} onPlaceName={(n) => setName((prev) => (prev.trim() ? prev : n))} />
+              <LocationPicker value={coords} query={name} onChange={setCoords} onPlaceName={(n) => setName(n)} />
             </Suspense>
             {error ? <ErrorBox message={error} /> : null}
             <div className="flex gap-2">
