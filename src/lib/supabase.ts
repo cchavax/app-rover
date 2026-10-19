@@ -21,8 +21,12 @@ export function errorMessage(e: unknown): string {
   return "Algo salió mal. Probá de nuevo.";
 }
 
-/** Lanza el error de una respuesta de Supabase para que React Query lo maneje. */
-export function must<T>(res: { data: T | null; error: unknown }): T {
+/**
+ * Lanza el error de una respuesta de Supabase para que React Query lo maneje.
+ * `data` es unknown a propósito: sin tipos generados, supabase-js infiere mal las
+ * relaciones (ej. devuelve arrays para relaciones a-uno). El tipo real lo pasa quien llama.
+ */
+export function must<T>(res: { data: unknown; error: unknown }): T {
   if (res.error) throw res.error;
   return res.data as T;
 }
