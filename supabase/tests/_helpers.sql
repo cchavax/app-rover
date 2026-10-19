@@ -1,6 +1,6 @@
 -- Helpers compartidos por los tests. Se incluyen con \ir dentro de la transacción de cada test.
 create schema test;
-grant usage on schema test to authenticated, anon;
+grant usage on schema test to authenticated, anon, service_role;
 
 create function test.ok(cond boolean, msg text) returns void language plpgsql as $$
 begin
@@ -35,5 +35,5 @@ create function test.as_user(uid uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated')::text, true);
 $$;
 
-grant execute on all functions in schema test to authenticated, anon;
+grant execute on all functions in schema test to authenticated, anon, service_role;
 
