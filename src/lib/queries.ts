@@ -72,7 +72,8 @@ export function usePhones(cid: string, userIds: string[]) {
       const rows = must<{ user_id: string; phone: string | null }[]>(
         await supabase.from("profile_contacts").select("user_id, phone").in("user_id", userIds)
       );
-      return new Map(rows.map((r) => [r.user_id, r.phone]));
+      // Objeto común (no Map) para poder guardarlo y verlo sin señal.
+      return Object.fromEntries(rows.map((r) => [r.user_id, r.phone])) as Record<string, string | null>;
     }
   });
 }

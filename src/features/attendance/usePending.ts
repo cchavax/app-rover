@@ -13,8 +13,8 @@ export function useUpcomingWithMyRsvps() {
 
   const pending = useMemo(() => {
     const now = Date.now();
-    const answered = mine.data ?? new Map<string, Rsvp>();
-    return (acts.data ?? []).filter((a) => a.status !== "cancelada" && Date.parse(a.starts_at) > now && !answered.has(a.id));
+    const answered: Record<string, Rsvp> = mine.data ?? {};
+    return (acts.data ?? []).filter((a) => a.status !== "cancelada" && Date.parse(a.starts_at) > now && !answered[a.id]);
   }, [acts.data, mine.data]);
 
   return { acts, mine: mine.data, pending, loadingMine: mine.isLoading && ids.length > 0 };

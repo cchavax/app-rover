@@ -26,10 +26,10 @@ export function RsvpSection({ a }: { a: Activity }) {
   const canTakeList = ended && !cancelled && canCreate && (a.created_by === profile.id || isCoord);
 
   const active = members.filter((m) => m.status === "activo");
-  const map = rsvps.data ?? new Map<string, Rsvp>();
+  const map: Record<string, Rsvp> = rsvps.data ?? {};
   const groups: Record<Rsvp | "pend", typeof active> = { voy: [], talvez: [], no: [], pend: [] };
-  for (const m of active) groups[map.get(m.user_id) ?? "pend"].push(m);
-  const mine = map.get(profile.id);
+  for (const m of active) groups[map[m.user_id] ?? "pend"].push(m);
+  const mine = map[profile.id];
 
   function answer(r: Rsvp) {
     setRsvp.mutate({ activityId: a.id, response: mine === r ? null : r }, { onError: (e) => toast(errorMessage(e)) });

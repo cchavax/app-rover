@@ -30,7 +30,7 @@ export function TakeListScreen() {
     if (act.data.attendance_taken_at) {
       if (attendance.data) setChecked(new Set(attendance.data));
     } else {
-      setChecked(new Set([...rsvps.data].filter(([, r]) => r === "voy").map(([u]) => u)));
+      setChecked(new Set(Object.entries(rsvps.data).filter(([, r]) => r === "voy").map(([u]) => u)));
     }
   }, [act.data, rsvps.data, attendance.data, checked]);
 
@@ -71,7 +71,7 @@ export function TakeListScreen() {
       </p>
       <div className="overflow-hidden rounded-2xl border border-line bg-surface">
         {active.map((m, i) => {
-          const r = rsvps.data?.get(m.user_id);
+          const r = rsvps.data?.[m.user_id];
           return (
             <label key={m.user_id} className={`flex items-center gap-3 px-3.5 py-3 text-[15px] ${i ? "border-t border-line" : ""}`}>
               <input type="checkbox" checked={checked.has(m.user_id)} onChange={() => toggle(m.user_id)} className="h-5 w-5 accent-accent" />

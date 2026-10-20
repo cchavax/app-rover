@@ -12,6 +12,9 @@ export const attendanceKeys = {
   attendance: (id: string) => ["attendance", id] as const
 };
 
+// Los datos se devuelven como objetos comunes (no Map) para que se puedan guardar
+// en el celular y verse sin señal: Map no sobrevive a JSON.
+
 /** Respuestas de todos para una actividad: user_id → respuesta. */
 export function useActivityRsvps(activityId: string) {
   return useQuery({
@@ -21,7 +24,7 @@ export function useActivityRsvps(activityId: string) {
       const rows = must<{ user_id: string; response: Rsvp }[]>(
         await supabase.from("rsvps").select("user_id, response").eq("activity_id", activityId)
       );
-      return new Map(rows.map((r) => [r.user_id, r.response]));
+      return Object.fromEntries(rows.map((r) => [r.user_id, r.response])) as Record<string, Rsvp>;
     }
   });
 }
@@ -35,7 +38,7 @@ export function useMyRsvps(uid: string, activityIds: string[]) {
       const rows = must<{ activity_id: string; response: Rsvp }[]>(
         await supabase.from("rsvps").select("activity_id, response").eq("user_id", uid).in("activity_id", activityIds)
       );
-      return new Map(rows.map((r) => [r.activity_id, r.response]));
+      return Object.fromEntries(rows.map((r) => [r.activity_id, r.response])) as Record<string, Rsvp>;
     }
   });
 }

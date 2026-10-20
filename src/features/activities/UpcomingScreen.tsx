@@ -86,7 +86,7 @@ export function UpcomingScreen() {
             <span className="text-[13px] text-muted">{shortDay(g.key)}</span>
           </h2>
           {g.items.map((a) => (
-            <ActivityCard key={a.id} a={a} project={a.project_id ? projById.get(a.project_id) : undefined} rsvp={mine?.get(a.id)} showRsvp />
+            <ActivityCard key={a.id} a={a} project={a.project_id ? projById.get(a.project_id) : undefined} rsvp={mine?.[a.id]} showRsvp />
           ))}
         </section>
       ))}

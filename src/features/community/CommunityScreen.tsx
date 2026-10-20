@@ -50,7 +50,7 @@ export function CommunityScreen({ community, myRole, uid }: { community: Communi
               <span className="block truncate font-bold">
                 {displayName(m.profile)} {m.user_id === uid ? <span className="text-sm font-normal text-muted">(vos)</span> : null}
               </span>
-              {phones.data?.get(m.user_id) ? <span className="block text-sm text-muted">{phones.data.get(m.user_id)}</span> : null}
+              {phones.data?.[m.user_id] ? <span className="block text-sm text-muted">{phones.data[m.user_id]}</span> : null}
             </span>
             <span className="rounded-full bg-line/60 px-2.5 py-1 text-xs font-bold text-muted">{ROLE_LABEL[m.role]}</span>
             <span className="text-muted" aria-hidden="true">›</span>
@@ -62,7 +62,7 @@ export function CommunityScreen({ community, myRole, uid }: { community: Communi
           m={openMember}
           isCoord={isCoord}
           isMe={openMember.user_id === uid}
-          phone={phones.data?.get(openMember.user_id) ?? null}
+          phone={phones.data?.[openMember.user_id] ?? null}
           cid={community.id}
           heirs={sorted.filter((x) => x.user_id !== openMember.user_id && x.role !== "educador")}
           onClose={() => setOpenId(null)}

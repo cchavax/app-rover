@@ -39,7 +39,7 @@ export function ActivityDetailScreen() {
   const cancelled = a.status === "cancelada";
   // /a/:id muestra la tarjeta con título, fecha y lugar en WhatsApp y después abre la actividad.
   const appUrl = `${window.location.origin}/a/${a.id}`;
-  const going = [...(rsvps.data?.values() ?? [])].filter((r) => r === "voy").length;
+  const going = Object.values(rsvps.data ?? {}).filter((r) => r === "voy").length;
   const wa = whatsappLink(
     activityMessage(a, tz, {
       series: series.data,
