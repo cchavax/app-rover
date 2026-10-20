@@ -55,7 +55,7 @@ export function CalendarScreen() {
         <button onClick={() => move(1)} aria-label="Mes siguiente" className="grid h-10 w-10 place-items-center rounded-xl border border-line bg-surface text-xl">›</button>
       </div>
 
-      {acts.error ? <ErrorBox message={errorMessage(acts.error)} onRetry={() => void acts.refetch()} /> : null}
+      {acts.error && !acts.data ? <ErrorBox message={errorMessage(acts.error)} onRetry={() => void acts.refetch()} /> : null}
 
       <div className="grid grid-cols-7 gap-[3px]">
         {WD.map((d, i) => (

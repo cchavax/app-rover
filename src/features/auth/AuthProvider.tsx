@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { clearOfflineCache } from "../../lib/offline.ts";
 import { supabase } from "../../lib/supabase.ts";
 
 type AuthState = { session: Session | null; loading: boolean };
@@ -36,4 +37,7 @@ export async function signInWithGoogle() {
 
 export async function signOut() {
   await supabase.auth.signOut();
+  clearOfflineCache();
+  // Recargar descarta todo lo que quedó en memoria de la sesión anterior.
+  window.location.assign("/");
 }

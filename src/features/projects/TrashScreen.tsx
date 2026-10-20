@@ -27,7 +27,7 @@ export function TrashScreen() {
   }
 
   if (trash.isLoading) return <Loading />;
-  if (trash.error) return <ErrorBox message={errorMessage(trash.error)} onRetry={() => void trash.refetch()} />;
+  if (trash.error && !trash.data) return <ErrorBox message={errorMessage(trash.error)} onRetry={() => void trash.refetch()} />;
 
   const daysLeft = (iso: string | null) => Math.max(0, 30 - Math.floor((Date.now() - Date.parse(iso ?? "")) / 864e5));
   const items = [

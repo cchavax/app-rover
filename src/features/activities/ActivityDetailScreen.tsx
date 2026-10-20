@@ -30,14 +30,15 @@ export function ActivityDetailScreen() {
   const [busy, setBusy] = useState(false);
 
   if (act.isLoading) return <Loading />;
-  if (act.error || !a || a.deleted_at) return <ErrorBox message={act.error ? errorMessage(act.error) : "Esta actividad ya no existe."} />;
+  if (!a || a.deleted_at) return <ErrorBox message={act.error ? errorMessage(act.error) : "Esta actividad ya no existe."} />;
 
   const t = TYPES[a.type];
   const mine = a.created_by === profile.id;
   const started = new Date(a.starts_at) <= new Date();
   const ended = new Date(a.ends_at) <= new Date();
   const cancelled = a.status === "cancelada";
-  const appUrl = `${window.location.origin}/actividades/${a.id}`;
+  // /a/:id muestra la tarjeta con título, fecha y lugar en WhatsApp y después abre la actividad.
+  const appUrl = `${window.location.origin}/a/${a.id}`;
   const going = [...(rsvps.data?.values() ?? [])].filter((r) => r === "voy").length;
   const wa = whatsappLink(
     activityMessage(a, tz, {

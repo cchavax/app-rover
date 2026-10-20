@@ -23,7 +23,7 @@ export function ProjectsScreen() {
   const today = todayKey(tz);
 
   if (projects.isLoading) return <Loading />;
-  if (projects.error) return <ErrorBox message={errorMessage(projects.error)} onRetry={() => void projects.refetch()} />;
+  if (projects.error && !projects.data) return <ErrorBox message={errorMessage(projects.error)} onRetry={() => void projects.refetch()} />;
 
   const list = (projects.data ?? []).filter((p) =>
     tab === "activos" ? p.status === "idea" || p.status === "en_curso" : p.status === "finalizado" || p.status === "cancelado"

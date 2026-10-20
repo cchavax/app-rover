@@ -39,7 +39,7 @@ export function ActivityFormScreen() {
   const { tz } = useApp();
 
   if (editing && existing.isLoading) return <Loading />;
-  if (editing && (existing.error || !existing.data)) return <ErrorBox message={errorMessage(existing.error)} />;
+  if (editing && !existing.data) return <ErrorBox message={errorMessage(existing.error)} />;
 
   const a = existing.data;
   const initial = a

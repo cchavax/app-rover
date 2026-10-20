@@ -13,7 +13,7 @@ export function ProjectFormScreen() {
   const { id } = useParams();
   const project = useProject(id);
   if (id && project.isLoading) return <Loading />;
-  if (id && (project.error || !project.data)) return <ErrorBox message={errorMessage(project.error)} />;
+  if (id && !project.data) return <ErrorBox message={errorMessage(project.error)} />;
   return <ProjectForm key={id ?? "nuevo"} existing={project.data} />;
 }
 

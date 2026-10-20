@@ -14,7 +14,7 @@ export function AdminScreen() {
   ]);
 
   if (pending.isLoading) return <Loading />;
-  if (pending.error) return <ErrorBox message={errorMessage(pending.error)} onRetry={() => void pending.refetch()} />;
+  if (pending.error && !pending.data) return <ErrorBox message={errorMessage(pending.error)} onRetry={() => void pending.refetch()} />;
 
   return (
     <div className="flex flex-col gap-4">

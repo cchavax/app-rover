@@ -30,7 +30,7 @@ export function UpcomingScreen() {
   }, [shown, tz, today]);
 
   if (acts.isLoading) return <Loading />;
-  if (acts.error) return <ErrorBox message={errorMessage(acts.error)} onRetry={() => void acts.refetch()} />;
+  if (acts.error && !acts.data) return <ErrorBox message={errorMessage(acts.error)} onRetry={() => void acts.refetch()} />;
 
   const firstList = toList[0];
 

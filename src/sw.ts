@@ -1,6 +1,9 @@
 /// <reference lib="webworker" />
 import { clientsClaim } from "workbox-core";
-import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
+import { ExpirationPlugin } from "workbox-expiration";
+import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
+import { NavigationRoute, registerRoute } from "workbox-routing";
+import { CacheFirst, StaleWhileRevalidate } from "workbox-strategies";
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -9,7 +12,21 @@ clientsClaim();
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
-/** Formato que va a mandar la Edge Function send-push (paso 4). */
+// Sin señal: cualquier pantalla de la app (/actividades/…, /calendario…) abre desde lo guardado.
+// /a/ y /p/ son las vistas previas de WhatsApp y /api/ las funciones: esas no.
+registerRoute(new NavigationRoute(createHandlerBoundToURL("/index.html"), { denylist: [/^\/api\//, /^\/a\//, /^\/p\//] }));
+
+// Tipografías de Google: se guardan la primera vez para que la app se vea igual sin señal.
+registerRoute(
+  ({ url }) => url.origin === "https://fonts.googleapis.com",
+  new StaleWhileRevalidate({ cacheName: "fuentes-css" })
+);
+registerRoute(
+  ({ url }) => url.origin === "https://fonts.gstatic.com",
+  new CacheFirst({ cacheName: "fuentes", plugins: [new ExpirationPlugin({ maxEntries: 20, maxAgeSeconds: 365 * 24 * 3600 })] })
+);
+
+/** Formato que manda la Edge Function "push". */
 type PushPayload = { title: string; body: string; url?: string; tag?: string };
 
 self.addEventListener("push", (event) => {

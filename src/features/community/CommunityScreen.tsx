@@ -18,7 +18,7 @@ export function CommunityScreen({ community, myRole, uid }: { community: Communi
   const openMember = active.find((m) => m.id === openId);
 
   if (members.isLoading) return <Loading />;
-  if (members.error) return <ErrorBox message={errorMessage(members.error)} onRetry={() => void members.refetch()} />;
+  if (members.error && !members.data) return <ErrorBox message={errorMessage(members.error)} onRetry={() => void members.refetch()} />;
 
   const sorted = [...active].sort(
     (a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role] || displayName(a.profile).localeCompare(displayName(b.profile))

@@ -1,6 +1,7 @@
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router";
 import { AppProvider } from "./app/context.tsx";
 import { publicPageFor } from "./features/public/PublicPages.tsx";
+import { OfflineBanner } from "./components/OfflineBanner.tsx";
 import { ErrorBox, Loading } from "./components/ui.tsx";
 import { ActivityDetailScreen } from "./features/activities/ActivityDetailScreen.tsx";
 import { ActivityFormScreen } from "./features/activities/ActivityFormScreen.tsx";
@@ -59,8 +60,9 @@ function SignedIn({ uid }: { uid: string }) {
   const community = useCommunity(active?.community_id);
 
   if (profile.isLoading || memberships.isLoading || (active && community.isLoading)) return <Loading />;
+  // Si hay datos guardados, los mostramos aunque falle la conexión.
   const err = profile.error ?? memberships.error ?? community.error;
-  if (err || !profile.data || !memberships.data)
+  if (!profile.data || !memberships.data || (active && !community.data))
     return (
       <main className="mx-auto max-w-xl px-4 py-10">
         <ErrorBox message={errorMessage(err)} onRetry={() => window.location.reload()} />
@@ -121,6 +123,7 @@ function Shell({ profile, community, role }: { profile: Profile; community: Comm
           <h1 className="font-display text-2xl font-extrabold">Fogón</h1>
         </div>
       </header>
+      <OfflineBanner />
 
       <ScrollArea>
       <main className="mx-auto max-w-xl px-4 pb-28 pt-4">

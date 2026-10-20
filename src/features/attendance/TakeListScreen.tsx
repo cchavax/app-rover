@@ -35,7 +35,7 @@ export function TakeListScreen() {
   }, [act.data, rsvps.data, attendance.data, checked]);
 
   if (act.isLoading || !checked) return <Loading />;
-  if (act.error || !act.data) return <ErrorBox message={errorMessage(act.error)} />;
+  if (!act.data) return <ErrorBox message={errorMessage(act.error)} />;
   const a = act.data;
   const active = members.filter((m) => m.status === "activo");
 

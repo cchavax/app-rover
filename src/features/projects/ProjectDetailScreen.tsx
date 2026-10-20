@@ -20,7 +20,7 @@ export function ProjectDetailScreen() {
 
   if (project.isLoading) return <Loading />;
   const p = project.data;
-  if (project.error || !p || p.deleted_at) return <ErrorBox message={project.error ? errorMessage(project.error) : "Este proyecto ya no existe."} />;
+  if (!p || p.deleted_at) return <ErrorBox message={project.error ? errorMessage(project.error) : "Este proyecto ya no existe."} />;
 
   const isOwner = p.owners.some((o) => o.user_id === profile.id);
   const canEdit = canCreate && (p.created_by === profile.id || isOwner);
@@ -38,7 +38,7 @@ export function ProjectDetailScreen() {
     `👥 A cargo: ${p.owners.map((o) => name(o.user_id)).join(", ")}`,
     nextAct ? `⏭️ Próxima actividad: ${nextAct.title}` : null,
     "",
-    `👉 Mirá el proyecto en Fogón: ${window.location.origin}/proyectos/${p.id}`
+    `👉 Mirá el proyecto en Fogón: ${window.location.origin}/p/${p.id}`
   ]
     .filter((l) => l !== null)
     .join("\n");
