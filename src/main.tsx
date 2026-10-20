@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import App from "./App.tsx";
+import { CrashScreen } from "./components/CrashScreen.tsx";
 import { ActivityBar } from "./components/Loader.tsx";
 import { ToastProvider } from "./components/ui.tsx";
 import { AuthProvider } from "./features/auth/AuthProvider.tsx";
@@ -21,6 +22,14 @@ const queryClient = new QueryClient({
 });
 trackLastSync(queryClient);
 
+/** Solo guardamos datos que sobreviven a JSON (nada de Map, Set ni fechas como objetos). */
+function isPlainJson(v: unknown): boolean {
+  if (v === null || typeof v !== "object") return true;
+  if (v instanceof Map || v instanceof Set || v instanceof Date) return false;
+  if (Array.isArray(v)) return v.every(isPlainJson);
+  return Object.values(v as Record<string, unknown>).every(isPlainJson);
+}
+
 const root = document.getElementById("root");
 if (!root) throw new Error("No se encontró el elemento #root");
 
@@ -31,14 +40,20 @@ createRoot(root).render(
       persistOptions={{
         persister,
         maxAge: CACHE_MAX_AGE,
-        buster: "v1", // cambiarlo si cambia la forma de los datos guardados
-        dehydrateOptions: { shouldDehydrateQuery: (q) => q.state.status === "success" && q.queryKey[0] !== "invite-code" }
+        // Cambiarlo descarta lo guardado. v2: la v1 guardaba Map (no se puede pasar a JSON) y rompía la app al reabrirla.
+        buster: "v2",
+        dehydrateOptions: {
+          shouldDehydrateQuery: (q) =>
+            q.state.status === "success" && q.queryKey[0] !== "invite-code" && isPlainJson(q.state.data)
+        }
       }}
     >
       <AuthProvider>
         <ToastProvider>
           <ActivityBar />
-          <App />
+          <CrashScreen>
+            <App />
+          </CrashScreen>
         </ToastProvider>
       </AuthProvider>
     </PersistQueryClientProvider>
