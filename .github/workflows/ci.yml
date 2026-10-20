@@ -1,8 +1,8 @@
 name: CI
 
 on:
+  # Todas las ramas: así una rama de prueba se valida antes de pasarla a main.
   push:
-    branches: [main]
   pull_request:
 
 jobs:
